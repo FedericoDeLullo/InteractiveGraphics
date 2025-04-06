@@ -1,6 +1,6 @@
-// Funzione per ottenere la matrice di ModelViewProjection
+// Function to get the ModelViewProjection matrix
 function GetModelViewProjection(projectionMatrix, translationX, translationY, translationZ, rotationX, rotationY) {
-    // Matrice di traslazione
+    // Translation matrix
     var trans = [
         1, 0, 0, 0,
         0, 1, 0, 0,
@@ -8,7 +8,7 @@ function GetModelViewProjection(projectionMatrix, translationX, translationY, tr
         translationX, translationY, translationZ, 1
     ];
 
-    // Matrice di rotazione attorno all'asse X
+    // Rotation matrix around the X-axis
     var rotateX = [
         1, 0, 0, 0,
         0, Math.cos(rotationX), Math.sin(rotationX), 0,
@@ -16,7 +16,7 @@ function GetModelViewProjection(projectionMatrix, translationX, translationY, tr
         0, 0, 0, 1
     ];
 
-    // Matrice di rotazione attorno all'asse Y
+    // Rotation matrix around the Y-axis
     var rotateY = [
         Math.cos(rotationY), 0, -Math.sin(rotationY), 0,
         0, 1, 0, 0,
@@ -24,141 +24,154 @@ function GetModelViewProjection(projectionMatrix, translationX, translationY, tr
         0, 0, 0, 1
     ];
 
-    // Applica le trasformazioni nell'ordine: Traslazione -> Rotazione Y -> Rotazione X
+    // Apply transformations in the order: Translation -> Rotation Y -> Rotation X
     var modelViewMatrix = MatrixMult(trans, MatrixMult(rotateX, rotateY));
 
-    // Infine, moltiplica per la matrice di proiezione
+    // Finally, multiply with the projection matrix
     var mvp = MatrixMult(projectionMatrix, modelViewMatrix);
 
     return mvp;
 }
 
-// Classe MeshDrawer per disegnare e gestire il modello 3D
+// MeshDrawer class for drawing and managing the 3D model
 class MeshDrawer {
     constructor() {
+        // Initialize the shader program and get uniform and attribute locations
         this.prog = InitShaderProgram(meshVS, meshFS);
         this.mvp = gl.getUniformLocation(this.prog, 'mvp');
-        this.vertPos = gl.getAttribLocation(this.prog, 'pos');
-        this.texCoord = gl.getAttribLocation(this.prog, 'texCoord');
-        this.useTexture = gl.getUniformLocation(this.prog, 'useTexture');
+        this.vertPosAttrib = gl.getAttribLocation(this.prog, 'pos');
+        this.texCoordAttrib = gl.getAttribLocation(this.prog, 'texCoord');
+        this.useTextureUniform = gl.getUniformLocation(this.prog, 'useTexture');
 
+        // Create buffers for position, texture coordinates, and normals
         this.positionBuffer = gl.createBuffer();
         this.texCoordBuffer = gl.createBuffer();
         this.normalBuffer = gl.createBuffer();
 
         this.texture = null;
-        this.numTriangles = 0; // Inizializza a 0
-        this.vertexCount = 0; // Tieni traccia del numero di vertici
+        this.numTriangles = 0;
+        this.vertexCount = 0;
+
+        // Save original vertices for axis swapping
+        this.meshVertices = [];
+
+        // Flag to indicate whether the texture should be used
+        this.textureEnabled = false;
     }
 
-    // Imposta la mesh con i vertici e le coordinate delle texture
+    // Set the mesh with vertex positions and texture coordinates
     setMesh(vertPos, texCoords) {
+        // Save a copy of the original vertices
+        this.meshVertices = vertPos.slice();
+
+        // Bind and set the position buffer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW);
 
         let normalizedTexCoords = [];
         if (texCoords) {
+            // Normalize the texture coordinates (UV mapping)
             for (let i = 0; i < texCoords.length; i += 2) {
-                // Normalizzazione delle coordinate UV
-                normalizedTexCoords.push(texCoords[i]); // U
-                normalizedTexCoords.push(texCoords[i + 1]); // V
+                normalizedTexCoords.push(texCoords[i]);     // U
+                normalizedTexCoords.push(texCoords[i + 1]);   // V
             }
         }
 
+        // Bind and set the texture coordinate buffer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normalizedTexCoords), gl.STATIC_DRAW);
 
+        // Calculate the number of vertices
         this.vertexCount = vertPos.length / 3;
     }
 
-    // Mostra o nasconde la texture
-
-// Funzione per mostrare o nascondere la texture
-showTexture(show) {
-    gl.useProgram(this.prog); // Assicurati di usare il programma shader corretto
-
-    // Se il flag è true, la texture deve essere visibile
-    if (show && this.texture) {
-        gl.uniform1i(this.useTexture, 1);  // Attivare la texture
-    } else {
-        gl.uniform1i(this.useTexture, 0);  // Disattivare la texture
+    // Set the texture visibility based on the checkbox state
+    showTexture(show) {
+        this.textureEnabled = show;
+        gl.useProgram(this.prog);
+        gl.uniform1i(this.useTextureUniform, (this.textureEnabled && this.texture) ? 1 : 0);
     }
-}
 
-    // Disegna il modello 3D usando la trasformazione passata
+    // Draw the 3D model using the provided transformation matrix
     draw(trans) {
         gl.useProgram(this.prog);
         gl.uniformMatrix4fv(this.mvp, false, trans);
 
-        // Posizionare i vertici della mesh
+        // Set vertex positions
         gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-        gl.vertexAttribPointer(this.vertPos, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(this.vertPos);
+        gl.vertexAttribPointer(this.vertPosAttrib, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this.vertPosAttrib);
 
-        // Posizionare le coordinate delle texture
+        // Set texture coordinates
         gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer);
-        gl.vertexAttribPointer(this.texCoord, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(this.texCoord);
+        gl.vertexAttribPointer(this.texCoordAttrib, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this.texCoordAttrib);
 
-        // Se c'è una texture, applicarla
-        if (this.texture && this.useTexture !== undefined) {
+        // Apply the texture if enabled and if it exists
+        if (this.texture && this.textureEnabled) {
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, this.texture);
-            gl.uniform1i(this.useTexture, 1); // Attivare la texture
+            gl.uniform1i(this.useTextureUniform, 1);
+        } else {
+            gl.uniform1i(this.useTextureUniform, 0);
         }
 
-        // Disegna la mesh usando il numero di vertici
+        // Draw the mesh using the vertex count
         gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
     }
 
+    // Set the texture for the mesh
     setTexture(img) {
+        // Create and bind the texture
         this.texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
 
+        // Set texture parameters for filtering and wrapping
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+        // Set the texture flag to true the first time the texture is applied
+        this.textureEnabled = true;
+        gl.useProgram(this.prog);
+        gl.uniform1i(this.useTextureUniform, 1);
     }
 
-    // Funzione per lo scambio degli assi Y e Z
-    // Funzione per lo scambio degli assi Y e Z
+    // Function to swap the Y and Z axes for the vertices
     swapYZ(swap) {
-        gl.useProgram(this.prog); // Assicurati di usare il programma shader corretto
-
-        // Se swap è true, invertiamo gli assi Y e Z
+        gl.useProgram(this.prog);
+        let newVertPos = [];
         if (swap) {
-            let newVertPos = [];
-            for (let i = 0; i < this.vertexCount * 3; i += 3) {
-                newVertPos.push(this.vertPos[i]);     // x
-                newVertPos.push(this.vertPos[i + 2]); // z (diventa y)
-                newVertPos.push(this.vertPos[i + 1]); // y (diventa z)
+            // Swap Y and Z axes from the original vertex data
+            for (let i = 0; i < this.meshVertices.length; i += 3) {
+                let x = this.meshVertices[i];
+                let y = this.meshVertices[i + 1];
+                let z = this.meshVertices[i + 2];
+                newVertPos.push(x, z, y);  // Swap Y and Z
             }
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(newVertPos), gl.STATIC_DRAW);
-            this.vertPos = newVertPos;  // Aggiorna i vertici memorizzati
         } else {
-            // Se non vogliamo fare lo swap, ripristiniamo le coordinate originali
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertPos), gl.STATIC_DRAW);
+            // Restore the original vertex positions
+            newVertPos = this.meshVertices.slice();
         }
+        // Update the position buffer with the new vertex positions
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(newVertPos), gl.STATIC_DRAW);
     }
-
 }
 
 // Vertex Shader
 var meshVS = `
-attribute vec3 pos;         // Posizione del vertice
-attribute vec2 texCoord;    // Coordinate UV del vertice
-uniform mat4 mvp;           // Matrice di modello, visualizzazione e proiezione
-varying vec2 vTexCoord;     // Variabile per passare le coordinate UV al fragment shader
+attribute vec3 pos;         // Vertex position
+attribute vec2 texCoord;    // Vertex texture coordinates
+uniform mat4 mvp;           // Model-view-projection matrix
+varying vec2 vTexCoord;     // Pass texture coordinates to the fragment shader
 
 void main() {
-    // Calcola la posizione finale del vertice
+    // Calculate the final vertex position
     gl_Position = mvp * vec4(pos, 1.0);
-
-    // Passa le coordinate UV al fragment shader
+    // Pass texture coordinates to the fragment shader
     vTexCoord = texCoord;
 }
 `;
@@ -166,23 +179,18 @@ void main() {
 // Fragment Shader
 var meshFS = `
 precision mediump float;
-
-uniform sampler2D texture;   // Sampler per la texture
-uniform bool useTexture;     // Variabile per decidere se usare la texture o meno
-varying vec2 vTexCoord;      // Coordinate UV passate dal vertex shader
+uniform sampler2D texture;   // Texture sampler
+uniform bool useTexture;     // Flag to decide whether to use the texture
+varying vec2 vTexCoord;      // Texture coordinates passed from the vertex shader
 
 void main() {
     if (useTexture) {
-        // Applica la texture utilizzando le coordinate UV
+        // If texture is enabled, sample the texture at the given coordinates
         vec4 texColor = texture2D(texture, vTexCoord);
-
-        // Imposta il colore finale solo con la texture
-        gl_FragColor = texColor;
+        gl_FragColor = texColor;  // Set the final color to the texture color
     } else {
-        // Se non c'è texture, usa un colore base con modulazione della profondità
+        // If texture is not enabled, use a base color modulated by depth
         gl_FragColor = vec4(1.0, gl_FragCoord.z * gl_FragCoord.z, 0.0, 1.0);
     }
 }
-
-
 `;

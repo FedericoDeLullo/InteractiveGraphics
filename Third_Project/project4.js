@@ -59,31 +59,26 @@ class MeshDrawer {
         this.textureEnabled = false;
     }
 
-    // Set the mesh with vertex positions and texture coordinates
-    setMesh(vertPos, texCoords) {
-        // Save a copy of the original vertices
-        this.meshVertices = vertPos.slice();
+   // Set the mesh with vertex positions and texture coordinates
+setMesh(vertPos, texCoords) {
+    // Save a copy of the original vertices
+    this.meshVertices = vertPos.slice();
 
-        // Bind and set the position buffer
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW);
+    // Bind and set the position buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW);
 
-        let normalizedTexCoords = [];
-        if (texCoords) {
-            // Normalize the texture coordinates (UV mapping)
-            for (let i = 0; i < texCoords.length; i += 2) {
-                normalizedTexCoords.push(texCoords[i]);     // U
-                normalizedTexCoords.push(texCoords[i + 1]);   // V
-            }
-        }
-
+    // If texture coordinates are provided, use them directly
+    if (texCoords) {
         // Bind and set the texture coordinate buffer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normalizedTexCoords), gl.STATIC_DRAW);
-
-        // Calculate the number of vertices
-        this.vertexCount = vertPos.length / 3;
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
     }
+
+    // Calculate the number of vertices
+    this.vertexCount = vertPos.length / 3;
+}
+
 
     // Set the texture visibility based on the checkbox state
     showTexture(show) {

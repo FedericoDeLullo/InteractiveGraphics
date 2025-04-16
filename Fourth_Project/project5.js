@@ -1,4 +1,13 @@
+// Function to compute the ModelViewProjection (MVP) matrix
 function GetModelViewMatrix(translationX, translationY, translationZ, rotationX, rotationY) {
+    // Translation matrix
+    var trans = [
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        translationX, translationY, translationZ, 1
+    ];
+
     // Rotation matrix around the X-axis
     var rotateX = [
         1, 0, 0, 0,
@@ -15,217 +24,205 @@ function GetModelViewMatrix(translationX, translationY, translationZ, rotationX,
         0, 0, 0, 1
     ];
 
-    // Translation matrix
-    var trans = [
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        translationX, translationY, translationZ, 1
-    ];
+    // Apply transformations: Translation -> Rotation X -> Rotation Y
+    var modelViewMatrix = MatrixMult(trans, MatrixMult(rotateX, rotateY));
 
-    // Final MV matrix: trans * (rotateX * rotateY)
-    var mv = MatrixMult(trans, MatrixMult(rotateX, rotateY));
-
-    return mv;
+    // Return the ModelView matrix
+    return modelViewMatrix;
 }
 
+// Class responsible for drawing a textured 3D mesh
 class MeshDrawer {
     constructor() {
-        // Inizializza shader program
-        this.prog = InitShaderProgram(meshVS, meshFS);
+        this.prog = InitShaderProgram(meshVS, meshFS); // Compile shaders and link program
 
-        // Attributi e uniform location
-        this.mvp = gl.getUniformLocation(this.prog, 'mvp');
-        this.mv = gl.getUniformLocation(this.prog, 'mv');
-        this.normMat = gl.getUniformLocation(this.prog, 'normalMatrix');
-        this.useTextureUniform = gl.getUniformLocation(this.prog, 'useTexture');
-        this.lightDirUniform = gl.getUniformLocation(this.prog, 'lightDir');
-        this.shininessUniform = gl.getUniformLocation(this.prog, 'shininess');
-        this.swapYZUniform = gl.getUniformLocation(this.prog, 'swapYZ');
+        // Attribute locations for position, texture coordinates, and normals
+        this.posAttr = gl.getAttribLocation(this.prog, 'pos');
+        this.texAttr = gl.getAttribLocation(this.prog, 'texCoord');
+        this.normAttr = gl.getAttribLocation(this.prog, 'normal'); // Add normal attribute
 
-        this.posAttrib = gl.getAttribLocation(this.prog, 'pos');
-        this.texAttrib = gl.getAttribLocation(this.prog, 'texCoord');
-        this.normAttrib = gl.getAttribLocation(this.prog, 'normal');
+        // Uniform locations
+        this.mvpUniform = gl.getUniformLocation(this.prog, 'mvp');
+        this.swapUniform = gl.getUniformLocation(this.prog, 'swap');
+        this.useTexUniform = gl.getUniformLocation(this.prog, 'useTexture');
+        this.texSamplerUniform = gl.getUniformLocation(this.prog, 'texture');
+        this.lightDirUniform = gl.getUniformLocation(this.prog, 'lightDir'); // Add light direction uniform
+        this.shininessUniform = gl.getUniformLocation(this.prog, 'shininess'); // Add shininess uniform
 
-        // Buffer
-        this.positionBuffer = gl.createBuffer();
-        this.texCoordBuffer = gl.createBuffer();
-        this.normalBuffer = gl.createBuffer();
+        // Buffers for vertex positions, texture coordinates, and normals
+        this.posBuffer = gl.createBuffer();
+        this.texBuffer = gl.createBuffer();
+        this.normBuffer = gl.createBuffer(); // Add buffer for normals
 
-        // Altri stati
+        // Texture setup
         this.texture = null;
-        this.textureEnabled = false;
-        this.numTriangles = 0;
-        this.meshVertices = [];
+        this.textureSet = false;
+        this.vertexCount = 0;
+
+        // Initialize default shader values
+        gl.useProgram(this.prog);
+        gl.uniform1i(this.useTexUniform, false);
+        gl.uniform1i(this.swapUniform, false);
     }
 
+    // Sets the mesh geometry (vertex positions, texture coordinates, and normals)
     setMesh(vertPos, texCoords, normals) {
-        this.numTriangles = vertPos.length / 3;
-        this.meshVertices = vertPos.slice(); // per swapYZ
+        this.vertexCount = vertPos.length / 3;
 
-        gl.useProgram(this.prog);
-
-        // Position buffer
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW);
 
-        // Texture coordinates
-        if (texCoords) {
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
-        }
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.texBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 
-        // Normals
-        if (normals) {
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
-        }
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuffer); // Upload normals
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
     }
 
-      // Function to swap the Y and Z axes for the vertices
-	  swapYZ(swap) {
-        gl.useProgram(this.prog);
-        let newVertPos = [];
-        if (swap) {
-            // Swap Y and Z axes from the original vertex data
-            for (let i = 0; i < this.meshVertices.length; i += 3) {
-                let x = this.meshVertices[i];
-                let y = this.meshVertices[i + 1];
-                let z = this.meshVertices[i + 2];
-                newVertPos.push(x, z, y);  // Swap Y and Z
-            }
-        } else {
-            // Restore the original vertex positions
-            newVertPos = this.meshVertices.slice();
-        }
-        // Update the position buffer with the new vertex positions
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(newVertPos), gl.STATIC_DRAW);
-    }
-
-    draw(matrixMVP, matrixMV, matrixNormal) {
-        gl.useProgram(this.prog);
-
-        // Uniform matrices
-        gl.uniformMatrix4fv(this.mvp, false, matrixMVP);
-        gl.uniformMatrix4fv(this.mv, false, matrixMV);
-        gl.uniformMatrix3fv(this.normMat, false, matrixNormal);
-
-        // Vertex positions
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-        gl.vertexAttribPointer(this.posAttrib, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(this.posAttrib);
-
-        // Texture coordinates
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer);
-        gl.vertexAttribPointer(this.texAttrib, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(this.texAttrib);
-
-        // Normals
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
-        gl.vertexAttribPointer(this.normAttrib, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(this.normAttrib);
-
-        // Texture
-        if (this.texture && this.textureEnabled) {
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.texture);
-            gl.uniform1i(this.useTextureUniform, 1);
-        } else {
-            gl.uniform1i(this.useTextureUniform, 0);
-        }
-
-        gl.drawArrays(gl.TRIANGLES, 0, this.numTriangles);
-    }
-
+    // Uploads the texture to the GPU and sets texture parameters
     setTexture(img) {
+        gl.useProgram(this.prog);
+
         this.texture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        this.textureEnabled = true;
 
-        gl.useProgram(this.prog);
-        gl.uniform1i(this.useTextureUniform, 1);
+        gl.uniform1i(this.texSamplerUniform, 0);
+
+        this.textureSet = true;
+
+        // Enable the texture as soon as it's set
+        gl.uniform1i(this.useTexUniform, true);
     }
 
+    // Enables or disables texture usage
     showTexture(show) {
-        this.textureEnabled = show;
         gl.useProgram(this.prog);
-        gl.uniform1i(this.useTextureUniform, show ? 1 : 0);
+        gl.uniform1i(this.useTexUniform, show && this.textureSet);
     }
 
+    // Swaps Y and Z components in the vertex shader
+    swapYZ(swap) {
+        gl.useProgram(this.prog);
+        gl.uniform1i(this.swapUniform, swap);
+    }
+
+    // Set the light direction in camera space
     setLightDir(x, y, z) {
         gl.useProgram(this.prog);
-        gl.uniform3f(this.lightDirUniform, x, y, z);
+        gl.uniform3fv(this.lightDirUniform, new Float32Array([x, y, z]));
     }
 
+    // Set shininess parameter for Blinn material model
     setShininess(shininess) {
         gl.useProgram(this.prog);
         gl.uniform1f(this.shininessUniform, shininess);
     }
+
+    // Renders the mesh with the current settings and transformation
+    draw(matrixMVP, matrixMV, matrixNormal) {
+        gl.useProgram(this.prog);
+
+        // Set uniforms for MVP and normal matrices
+        gl.uniformMatrix4fv(this.mvpUniform, false, matrixMVP);
+
+        // Set normals matrix for transforming normals
+        gl.uniformMatrix3fv(gl.getUniformLocation(this.prog, 'normalMatrix'), false, matrixNormal);
+
+        // Bind vertex positions
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuffer);
+        gl.vertexAttribPointer(this.posAttr, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this.posAttr);
+
+        // Bind texture coordinates
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.texBuffer);
+        gl.vertexAttribPointer(this.texAttr, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this.texAttr);
+
+        // Bind normals
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuffer);
+        gl.vertexAttribPointer(this.normAttr, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this.normAttr);
+
+        // Ensure the texture is active (if set)
+        if (this.textureSet) {
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, this.texture);
+            gl.uniform1i(this.texSamplerUniform, 0);
+        }
+
+        // Draw the mesh
+        gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
+    }
 }
+
 // Vertex Shader
-var meshVS = `
+const meshVS = `
 attribute vec3 pos;
 attribute vec2 texCoord;
-attribute vec3 normal;
+attribute vec3 normal; // Add normal attribute
 
 uniform mat4 mvp;
-uniform mat4 mv;
-uniform mat3 normalMatrix;
-
-uniform bool swapYZ;
+uniform mat3 normalMatrix; // Normal matrix for transforming normals
+uniform bool swap;
 
 varying vec2 vTexCoord;
-varying vec3 vNormal;
-varying vec3 vPosition;
+varying vec3 vNormal; // Pass the normal to the fragment shader
 
 void main() {
-    vec3 posWorld = pos;
-    if (swapYZ) {
-        posWorld = vec3(pos.x, pos.z, pos.y);
-    }
+    // Optionally swap Y and Z coordinates
+    vec3 finalPos = swap ? vec3(pos.x, pos.z, pos.y) : pos;
+    gl_Position = mvp * vec4(finalPos, 1.0);
 
-    vPosition = vec3(mv * vec4(posWorld, 1.0));
+    // Pass transformed normal to fragment shader
     vNormal = normalize(normalMatrix * normal);
     vTexCoord = texCoord;
-    gl_Position = mvp * vec4(posWorld, 1.0);
 }
 `;
 
 // Fragment Shader
-var meshFS = `
+const meshFS = `
 precision mediump float;
 
-uniform bool useTexture;
 uniform sampler2D texture;
-uniform vec3 lightDir;
-uniform float shininess;
+uniform bool useTexture;
+uniform vec3 lightDir; // Directional light direction
+uniform float shininess; // Shininess for Blinn model
 
 varying vec2 vTexCoord;
-varying vec3 vNormal;
-varying vec3 vPosition;
+varying vec3 vNormal; // Receive transformed normal
 
 void main() {
-    vec3 norm = normalize(vNormal);
-    vec3 L = normalize(lightDir);
-    vec3 V = normalize(-vPosition);
-    vec3 H = normalize(L + V);
+    // Get the texture color or default color
+    vec4 color = useTexture ? texture2D(texture, vTexCoord) : vec4(1.0, 1.0, 1.0, 1.0);
 
-    float NdotL = max(dot(norm, L), 0.0);
-    float NdotH = max(dot(norm, H), 0.0);
+    // Normalize the normal
+    vec3 normal = normalize(vNormal);
 
-    vec3 Kd = useTexture ? texture2D(texture, vTexCoord).rgb : vec3(1.0);
-    vec3 Ks = vec3(1.0);
+    // Light direction (should already be in camera space)
+    vec3 light = normalize(lightDir);
 
-    vec3 diffuse = Kd * NdotL;
-    vec3 specular = Ks * pow(NdotH, shininess);
+    // Diffuse reflection (Lambertian shading)
+    float diff = max(dot(normal, light), 0.0);
 
-    vec3 color = diffuse + specular;
-    gl_FragColor = vec4(color, 1.0);
+    // Calculate the view direction (camera is at the origin)
+    vec3 viewDir = normalize(-gl_FragCoord.xyz);
+
+    // Halfway vector between light direction and view direction for Blinn-Phong
+    vec3 halfwayDir = normalize(light + viewDir);
+
+    // Specular reflection (Blinn-Phong)
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
+
+    // Combine diffuse and specular contributions
+    vec3 finalColor = color.rgb * diff + vec3(1.0) * spec;
+
+    // Set final color
+    gl_FragColor = vec4(finalColor, color.a);
 }
 `;

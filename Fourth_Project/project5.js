@@ -1,6 +1,6 @@
-// Funzione per calcolare la matrice ModelView (MVP)
+// Function to compute the ModelView (MVP) matrix
 function GetModelViewMatrix(translationX, translationY, translationZ, rotationX, rotationY) {
-    // Matrice di traslazione
+    // Translation matrix
     var trans = [
         1, 0, 0, 0,
         0, 1, 0, 0,
@@ -8,7 +8,7 @@ function GetModelViewMatrix(translationX, translationY, translationZ, rotationX,
         translationX, translationY, translationZ, 1
     ];
 
-    // Matrice di rotazione attorno all'asse X
+    // Rotation matrix around X axis
     var rotateX = [
         1, 0, 0, 0,
         0, Math.cos(rotationX), Math.sin(rotationX), 0,
@@ -16,7 +16,7 @@ function GetModelViewMatrix(translationX, translationY, translationZ, rotationX,
         0, 0, 0, 1
     ];
 
-    // Matrice di rotazione attorno all'asse Y
+    // Rotation matrix around Y axis
     var rotateY = [
         Math.cos(rotationY), 0, -Math.sin(rotationY), 0,
         0, 1, 0, 0,
@@ -24,24 +24,24 @@ function GetModelViewMatrix(translationX, translationY, translationZ, rotationX,
         0, 0, 0, 1
     ];
 
-    // Applica le trasformazioni: Traslazione -> Rotazione X -> Rotazione Y
+    // Apply transformations: Translation -> Rotation X -> Rotation Y
     var modelViewMatrix = MatrixMult(trans, MatrixMult(rotateX, rotateY));
 
-    // Ritorna la matrice ModelView
+    // Return the ModelView matrix
     return modelViewMatrix;
 }
 
-// Classe responsabile per disegnare una mesh 3D con texture
+// Class responsible for rendering a textured 3D mesh
 class MeshDrawer {
     constructor() {
-        this.prog = InitShaderProgram(meshVS, meshFS); // Compila gli shader e linka il programma
+        this.prog = InitShaderProgram(meshVS, meshFS); // Compile shaders and link the program
 
-        // Posizioni degli attributi per posizione, coordinate della texture e normali
+        // Attribute locations for position, texture coordinates, and normals
         this.posAttr = gl.getAttribLocation(this.prog, 'pos');
         this.texAttr = gl.getAttribLocation(this.prog, 'texCoord');
-        this.normAttr = gl.getAttribLocation(this.prog, 'normal'); // Aggiungi attributo normale
+        this.normAttr = gl.getAttribLocation(this.prog, 'normal'); // Add normal attribute
 
-        // Posizioni degli uniform per MVP, swap, texture, luce e shininess
+        // Uniform locations for MVP, swap, texture, light, and shininess
         this.mvpUniform = gl.getUniformLocation(this.prog, 'mvp');
         this.swapUniform = gl.getUniformLocation(this.prog, 'swap');
         this.useTexUniform = gl.getUniformLocation(this.prog, 'useTexture');
@@ -49,40 +49,40 @@ class MeshDrawer {
         this.lightDirUniform = gl.getUniformLocation(this.prog, 'lightDir');
         this.shininessUniform = gl.getUniformLocation(this.prog, 'shininess');
 
-        // Buffer per posizioni dei vertici, coordinate della texture e normali
+        // Buffers for vertex positions, texture coordinates, and normals
         this.posBuffer = gl.createBuffer();
         this.texBuffer = gl.createBuffer();
-        this.normBuffer = gl.createBuffer(); // Aggiungi buffer per le normali
+        this.normBuffer = gl.createBuffer(); // Add buffer for normals
 
-        // Variabili per la texture
+        // Texture-related variables
         this.texture = null;
         this.textureSet = false;
         this.vertexCount = 0;
 
-        // Inizializza i valori di default per gli shader
+        // Initialize default shader values
         gl.useProgram(this.prog);
         gl.uniform1i(this.useTexUniform, false);
         gl.uniform1i(this.swapUniform, false);
     }
 
-    // Imposta la geometria della mesh (posizioni, coordinate texture e normali)
+    // Set mesh geometry (positions, texture coordinates, and normals)
     setMesh(vertPos, texCoords, normals) {
         this.vertexCount = vertPos.length / 3;
 
-        // Buffer delle posizioni dei vertici
+        // Vertex positions buffer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW);
 
-        // Buffer delle coordinate della texture
+        // Texture coordinates buffer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.texBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 
-        // Buffer delle normali
+        // Normals buffer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
     }
 
-    // Carica la texture nella GPU e imposta i parametri della texture
+    // Upload the texture to the GPU and set texture parameters
     setTexture(img) {
         gl.useProgram(this.prog);
 
@@ -99,67 +99,67 @@ class MeshDrawer {
 
         this.textureSet = true;
 
-        // Attiva la texture
+        // Enable texture usage
         gl.uniform1i(this.useTexUniform, true);
     }
 
-    // Mostra o nasconde la texture
+    // Enable or disable the texture
     showTexture(show) {
         gl.useProgram(this.prog);
         gl.uniform1i(this.useTexUniform, show && this.textureSet);
     }
 
-    // Swap tra Y e Z nel vertex shader
+    // Swap Y and Z axes in the vertex shader
     swapYZ(swap) {
         gl.useProgram(this.prog);
         gl.uniform1i(this.swapUniform, swap);
     }
 
-    // Imposta la direzione della luce nello spazio della camera
+    // Set the light direction in camera space
     setLightDir(x, y, z) {
         gl.useProgram(this.prog);
         gl.uniform3fv(this.lightDirUniform, new Float32Array([x, y, z]));
     }
 
-    // Imposta il parametro di shininess per il modello Blinn
+    // Set the shininess parameter for Blinn shading
     setShininess(shininess) {
         gl.useProgram(this.prog);
         gl.uniform1f(this.shininessUniform, shininess);
     }
 
-    // Renderizza la mesh con le impostazioni e trasformazioni correnti
+    // Render the mesh with current settings and transformations
     draw(matrixMVP, matrixMV, matrixNormal) {
         gl.useProgram(this.prog);
 
-        // Imposta la matrice MVP
+        // Set MVP matrix
         gl.uniformMatrix4fv(this.mvpUniform, false, matrixMVP);
 
-        // Imposta la matrice delle normali
+        // Set normal matrix
         gl.uniformMatrix3fv(gl.getUniformLocation(this.prog, 'normalMatrix'), false, matrixNormal);
 
-        // Associa le posizioni dei vertici
+        // Bind vertex positions
         gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuffer);
         gl.vertexAttribPointer(this.posAttr, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(this.posAttr);
 
-        // Associa le coordinate della texture
+        // Bind texture coordinates
         gl.bindBuffer(gl.ARRAY_BUFFER, this.texBuffer);
         gl.vertexAttribPointer(this.texAttr, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(this.texAttr);
 
-        // Associa le normali
+        // Bind normals
         gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuffer);
         gl.vertexAttribPointer(this.normAttr, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(this.normAttr);
 
-        // Se la texture è settata, associala
+        // Bind texture if set
         if (this.textureSet) {
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, this.texture);
             gl.uniform1i(this.texSamplerUniform, 0);
         }
 
-        // Disegna la mesh
+        // Draw the mesh
         gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
     }
 }

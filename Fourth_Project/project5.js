@@ -1,6 +1,81 @@
-// Funzione per calcolare la matrice ModelView (MVP)
+// Vertex Shader
+const meshVS = `
+precision mediump float; // Set medium precision for floats
+
+// Vertex attributes provided by the mesh
+attribute vec3 pos;       // Vertex position
+attribute vec2 texCoord;  // Texture coordinate
+attribute vec3 normal;    // Vertex normal
+
+// Uniform matrices for transformations
+uniform mat4 mvp;         // Model-View-Projection matrix
+uniform mat4 mv;          // Model-View matrix
+uniform mat3 normalMatrix; // Matrix to transform normals
+uniform bool swap;        // Flag to optionally swap Y and Z axes
+
+// Outputs to the fragment shader
+varying vec2 vTexCoord;   // Pass texture coordinate
+varying vec3 vNormal;     // Pass transformed normal
+varying vec3 vFragPos;    // Pass fragment position in view space
+
+void main() {
+    vec3 finalPos = pos;
+    vec3 finalNormal = normal;
+
+    // If swap is enabled, exchange Y and Z values (for coordinate system adjustment)
+    if (swap) {
+        finalPos = vec3(pos.x, pos.z, pos.y);
+        finalNormal = vec3(normal.x, normal.z, normal.y);
+    }
+
+    // Compute the position in view space for lighting
+    vFragPos = vec3(mv * vec4(finalPos, 1.0));
+    // Transform and normalize the normal vector
+    vNormal = normalize(normalMatrix * finalNormal);
+    // Pass texture coordinate unchanged
+    vTexCoord = texCoord;
+
+    // Compute final position in clip space
+    gl_Position = mvp * vec4(finalPos, 1.0);
+}
+`;
+// Fragment Shader
+const meshFS = `
+precision mediump float; // Medium precision for floats
+
+// Uniforms
+uniform bool useTexture;         // Enable or disable texture usage
+uniform sampler2D texture;       // Texture sampler
+uniform vec3 lightDir;           // Direction of the light source
+uniform float shininess;         // Shininess for specular highlight
+
+// Inputs from the vertex shader
+varying vec2 vTexCoord;          // Interpolated texture coordinate
+varying vec3 vNormal;            // Interpolated and transformed normal
+varying vec3 vFragPos;           // Interpolated position in view space
+
+void main() {
+    vec3 n = normalize(vNormal);          // Normal vector
+    vec3 l = normalize(lightDir);         // Light direction
+    vec3 v = normalize(-vFragPos);        // View direction (camera is at origin)
+    vec3 halfDir = normalize(l + v);      // Halfway vector for Blinn-Phong
+
+    // Diffuse and specular components
+    float diff = max(dot(n, l), 0.0);     // Diffuse lighting
+    float spec = pow(max(dot(n, halfDir), 0.0), shininess); // Specular highlight
+
+    // Get diffuse color from texture or use white
+    vec3 k_d = useTexture ? texture2D(texture, vTexCoord).rgb : vec3(1.0);
+    vec3 k_s = vec3(1.0);                 // Specular color (white)
+    vec3 ambient = 0.1 * k_d;             // Ambient component
+
+    // Combine lighting components
+    vec3 color = k_d * diff + k_s * spec + ambient;
+    gl_FragColor = vec4(color, 1.0);      // Final fragment color
+}
+`;
+// Function to compute ModelView matrix given translation and rotation
 function GetModelViewMatrix(translationX, translationY, translationZ, rotationX, rotationY) {
-    // Matrice di traslazione
     var trans = [
         1, 0, 0, 0,
         0, 1, 0, 0,
@@ -8,7 +83,6 @@ function GetModelViewMatrix(translationX, translationY, translationZ, rotationX,
         translationX, translationY, translationZ, 1
     ];
 
-    // Matrice di rotazione attorno all'asse X
     var rotateX = [
         1, 0, 0, 0,
         0, Math.cos(rotationX), Math.sin(rotationX), 0,
@@ -16,7 +90,6 @@ function GetModelViewMatrix(translationX, translationY, translationZ, rotationX,
         0, 0, 0, 1
     ];
 
-    // Matrice di rotazione attorno all'asse Y
     var rotateY = [
         Math.cos(rotationY), 0, -Math.sin(rotationY), 0,
         0, 1, 0, 0,
@@ -24,65 +97,60 @@ function GetModelViewMatrix(translationX, translationY, translationZ, rotationX,
         0, 0, 0, 1
     ];
 
-    // Applica le trasformazioni: Traslazione -> Rotazione X -> Rotazione Y
+    // Multiply: Translation * RotationX * RotationY
     var modelViewMatrix = MatrixMult(trans, MatrixMult(rotateX, rotateY));
-
-    // Ritorna la matrice ModelView
     return modelViewMatrix;
 }
-
-// Classe responsabile per disegnare una mesh 3D con texture
+// Class responsible for rendering a 3D mesh with optional texture and lighting
 class MeshDrawer {
     constructor() {
-        this.prog = InitShaderProgram(meshVS, meshFS); // Compila gli shader e linka il programma
+        // Compile shaders and create shader program
+        this.prog = InitShaderProgram(meshVS, meshFS);
 
-        // Posizioni degli attributi per posizione, coordinate della texture e normali
+        // Get attribute and uniform locations
         this.posAttr = gl.getAttribLocation(this.prog, 'pos');
         this.texAttr = gl.getAttribLocation(this.prog, 'texCoord');
-        this.normAttr = gl.getAttribLocation(this.prog, 'normal'); // Aggiungi attributo normale
+        this.normAttr = gl.getAttribLocation(this.prog, 'normal');
 
-        // Posizioni degli uniform per MVP, swap, texture, luce e shininess
         this.mvpUniform = gl.getUniformLocation(this.prog, 'mvp');
+        this.mvUniform = gl.getUniformLocation(this.prog, 'mv');
         this.swapUniform = gl.getUniformLocation(this.prog, 'swap');
         this.useTexUniform = gl.getUniformLocation(this.prog, 'useTexture');
         this.texSamplerUniform = gl.getUniformLocation(this.prog, 'texture');
         this.lightDirUniform = gl.getUniformLocation(this.prog, 'lightDir');
         this.shininessUniform = gl.getUniformLocation(this.prog, 'shininess');
 
-        // Buffer per posizioni dei vertici, coordinate della texture e normali
+        // Create GPU buffers for positions, textures, and normals
         this.posBuffer = gl.createBuffer();
         this.texBuffer = gl.createBuffer();
-        this.normBuffer = gl.createBuffer(); // Aggiungi buffer per le normali
+        this.normBuffer = gl.createBuffer();
 
-        // Variabili per la texture
+        // Texture tracking
         this.texture = null;
         this.textureSet = false;
         this.vertexCount = 0;
 
-        // Inizializza i valori di default per gli shader
+        // Set initial state
         gl.useProgram(this.prog);
         gl.uniform1i(this.useTexUniform, false);
         gl.uniform1i(this.swapUniform, false);
     }
 
-    // Imposta la geometria della mesh (posizioni, coordinate texture e normali)
+    // Upload mesh data to GPU buffers
     setMesh(vertPos, texCoords, normals) {
         this.vertexCount = vertPos.length / 3;
 
-        // Buffer delle posizioni dei vertici
         gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW);
 
-        // Buffer delle coordinate della texture
         gl.bindBuffer(gl.ARRAY_BUFFER, this.texBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 
-        // Buffer delle normali
         gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
     }
 
-    // Carica la texture nella GPU e imposta i parametri della texture
+    // Load texture image and send it to GPU
     setTexture(img) {
         gl.useProgram(this.prog);
 
@@ -90,130 +158,77 @@ class MeshDrawer {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
+        // Upload the image to the texture
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
         gl.generateMipmap(gl.TEXTURE_2D);
+
+        // Set texture filtering
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
+        // Tell the shader to use this texture
         gl.uniform1i(this.texSamplerUniform, 0);
 
         this.textureSet = true;
-
-        // Attiva la texture
         gl.uniform1i(this.useTexUniform, true);
     }
 
-    // Mostra o nasconde la texture
+    // Enable or disable texture usage
     showTexture(show) {
         gl.useProgram(this.prog);
         gl.uniform1i(this.useTexUniform, show && this.textureSet);
     }
 
-    // Swap tra Y e Z nel vertex shader
+    // Enable or disable Y-Z coordinate swapping
     swapYZ(swap) {
         gl.useProgram(this.prog);
         gl.uniform1i(this.swapUniform, swap);
     }
 
-    // Imposta la direzione della luce nello spazio della camera
+    // Set the direction of the light source
     setLightDir(x, y, z) {
         gl.useProgram(this.prog);
         gl.uniform3fv(this.lightDirUniform, new Float32Array([x, y, z]));
     }
 
-    // Imposta il parametro di shininess per il modello Blinn
+    // Set the shininess value for specular highlights
     setShininess(shininess) {
         gl.useProgram(this.prog);
         gl.uniform1f(this.shininessUniform, shininess);
     }
 
-    // Renderizza la mesh con le impostazioni e trasformazioni correnti
+    // Draw the mesh using current buffers and uniforms
     draw(matrixMVP, matrixMV, matrixNormal) {
         gl.useProgram(this.prog);
 
-        // Imposta la matrice MVP
+        // Set transformation matrices
         gl.uniformMatrix4fv(this.mvpUniform, false, matrixMVP);
-
-        // Imposta la matrice delle normali
+        gl.uniformMatrix4fv(this.mvUniform, false, matrixMV);
         gl.uniformMatrix3fv(gl.getUniformLocation(this.prog, 'normalMatrix'), false, matrixNormal);
 
-        // Associa le posizioni dei vertici
+        // Bind vertex position buffer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuffer);
         gl.vertexAttribPointer(this.posAttr, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(this.posAttr);
 
-        // Associa le coordinate della texture
+        // Bind texture coordinate buffer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.texBuffer);
         gl.vertexAttribPointer(this.texAttr, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(this.texAttr);
 
-        // Associa le normali
+        // Bind normal buffer
         gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuffer);
         gl.vertexAttribPointer(this.normAttr, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(this.normAttr);
 
-        // Se la texture è settata, associala
+        // Bind texture if it is set
         if (this.textureSet) {
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, this.texture);
             gl.uniform1i(this.texSamplerUniform, 0);
         }
 
-        // Disegna la mesh
+        // Issue the draw call
         gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
     }
 }
-
-// Vertex Shader
-const meshVS = `
-attribute vec3 pos;
-attribute vec2 texCoord;
-attribute vec3 normal;
-
-uniform mat4 mvp;
-uniform mat3 normalMatrix;
-uniform bool swap;
-
-varying vec2 vTexCoord;
-varying vec3 vNormal;
-varying vec3 vFragPos;
-
-void main() {
-    vec3 finalPos = swap ? vec3(pos.x, pos.z, pos.y) : pos;
-    gl_Position = mvp * vec4(finalPos, 1.0);
-
-    vNormal = normalize(normalMatrix * normal);
-    vFragPos = vec3(mvp * vec4(finalPos, 1.0)).xyz;
-    vTexCoord = texCoord;
-}
-`;
-
-// Fragment Shader
-const meshFS = `
-precision mediump float;
-
-uniform sampler2D texture;
-uniform bool useTexture;
-uniform vec3 lightDir;
-uniform float shininess;
-
-varying vec2 vTexCoord;
-varying vec3 vNormal;
-varying vec3 vFragPos;
-
-void main() {
-    vec4 color = useTexture ? texture2D(texture, vTexCoord) : vec4(1.0, 1.0, 1.0, 1.0);
-
-    vec3 normal = normalize(vNormal);
-    vec3 light = normalize(lightDir);
-    vec3 viewDir = normalize(-vFragPos);
-    vec3 halfwayDir = normalize(light + viewDir);
-
-    float diff = max(dot(normal, light), 0.0) + 0.1;
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
-
-    vec3 finalColor = color.rgb * diff + vec3(1.0) * spec;
-
-    gl_FragColor = vec4(finalColor, color.a);
-}
-`;

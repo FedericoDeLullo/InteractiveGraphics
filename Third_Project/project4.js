@@ -1,4 +1,4 @@
-// Function to compute the ModelViewProjection (MVP) matrix
+// Function to compute the ModelViewProjection (MVP) Matrix
 function GetModelViewProjection(projectionMatrix, translationX, translationY, translationZ, rotationX, rotationY) {
     // Translation matrix
     var trans = [

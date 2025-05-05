@@ -232,3 +232,4 @@ class MeshDrawer {
         gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
     }
 }
+

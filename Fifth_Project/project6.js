@@ -70,18 +70,18 @@ vec4 RayTracer( Ray ray )
 	if ( IntersectRay( hit, ray ) ) {
 		vec3 view = normalize( -ray.dir );
 		vec3 clr = Shade( hit.mtl, hit.position, hit.normal, view );
-		
+
 		// Compute reflections
 		vec3 k_s = hit.mtl.k_s;
 		for ( int bounce=0; bounce<MAX_BOUNCES; ++bounce ) {
 			if ( bounce >= bounceLimit ) break;
 			if ( hit.mtl.k_s.r + hit.mtl.k_s.g + hit.mtl.k_s.b <= 0.0 ) break;
-			
+
 			Ray r;	// this is the reflection ray
 			HitInfo h;	// reflection hit info
-			
+
 			// TO-DO: Initialize the reflection ray
-			
+
 			if ( IntersectRay( h, r ) ) {
 				// TO-DO: Hit found, so shade the hit point
 				// TO-DO: Update the loop variables for tracing the next reflection ray
@@ -96,5 +96,5 @@ vec4 RayTracer( Ray ray )
 	} else {
 		return vec4( textureCube( envMap, ray.dir.xzy ).rgb, 0 );	// return the environment color
 	}
-}
+]
 `;

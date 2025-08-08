@@ -1,56 +1,37 @@
 // main.js
 import * as THREE from 'https://unpkg.com/three@0.126.0/build/three.module.js';
+import { PointerLockControls } from 'https://unpkg.com/three@0.126.0/examples/jsm/controls/PointerLockControls.js';
 import { GameWorld } from './GameWorld.js';
-import { GLTFLoader } from 'https://unpkg.com/three@0.126.0/examples/jsm/loaders/GLTFLoader.js';
 
-let scene, camera, renderer, player;
-let isFirstPerson = false;
+let scene, camera, renderer;
+let controls;
 let gameWorld;
-let score = 0;
-let scoreElement;
 
-let mixer;
-let actions = {};
-let activeAction;
-let previousAction;
+let moveForward = false;
+let moveBackward = false;
+let moveLeft = false;
+let moveRight = false;
+let isFlying = false; // Nuovo stato per il volo
+let canJump = false;
 
-const keys = {};
-
-window.addEventListener('keydown', (event) => {
-    keys[event.code] = true;
-});
-
-window.addEventListener('keyup', (event) => {
-    keys[event.code] = false;
-});
-
+const velocity = new THREE.Vector3();
+const direction = new THREE.Vector3();
+const raycaster = new THREE.Raycaster();
 const clock = new THREE.Clock();
 
 function init() {
     scene = new THREE.Scene();
-
-    const cubeTextureLoader = new THREE.CubeTextureLoader();
-    const cubeTexture = cubeTextureLoader.load([
-        './skybox/right.jpg',
-        './skybox/left.jpg',
-        './skybox/top.jpg',
-        './skybox/bottom.jpg',
-        './skybox/front.jpg',
-        './skybox/back.jpg'
-    ]);
-    scene.background = cubeTexture;
-    scene.environment = cubeTexture;
+    scene.background = new THREE.Color(0xcce0ff);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 5, -10);
+    camera.position.y = 1.7;
+    camera.position.z = 5;
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    renderer.outputEncoding = THREE.sRGBEncoding;
-
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444);
     hemiLight.position.set(0, 20, 0);
     scene.add(hemiLight);
 
@@ -59,155 +40,189 @@ function init() {
     scene.add(dirLight);
 
     gameWorld = new GameWorld(scene);
+    gameWorld.createHouses();
 
-    scoreElement = document.getElementById('score');
+    controls = new PointerLockControls(camera, document.body);
 
-    const manager = new THREE.LoadingManager();
-    const loader = new GLTFLoader(manager);
+    const blocker = document.getElementById('blocker');
+    const instructions = document.getElementById('instructions');
 
-    loader.load('./models/house.glb', (gltf) => {
-        const house = gltf.scene;
-        scene.add(house);
-        gameWorld.walls.push(house);
-    }, undefined, (error) => {
-        console.error(error);
-    });
-
-    loader.load('./models/character.glb', (gltf) => {
-        player = gltf.scene;
-        player.scale.set(2, 2, 2);
-        player.position.set(0, 0.5, -15);
-        player.rotation.y = Math.PI;
-
-        mixer = new THREE.AnimationMixer(player);
-        scene.add(player);
-
-        if (gltf.animations.length > 0) {
-            // Usiamo il nome esatto 'Animation' per l'azione statica
-            actions['Animation'] = mixer.clipAction(gltf.animations[0]);
-        }
-
-        loader.load('./models/walk.glb', (gltfAnim) => {
-            const clip = gltfAnim.animations[0];
-            if (clip) {
-                // Usiamo il nome esatto 'Armature|CINEMA_4D_Main|Layer0' per la camminata
-                actions['Armature|CINEMA_4D_Main|Layer0'] = mixer.clipAction(clip);
-            }
+    if (instructions && blocker) {
+        instructions.addEventListener('click', () => {
+            controls.lock();
         });
 
-    }, undefined, (error) => {
-        console.error('An error happened while loading the character model.', error);
-    });
+        controls.addEventListener('lock', () => {
+            instructions.style.display = 'none';
+            blocker.style.display = 'none';
+        });
 
-    manager.onLoad = () => {
-        console.log('Tutti gli asset sono stati caricati.');
-        // Impostiamo l'animazione di default (statica)
-        setAction('Animation');
-        animate();
-    };
-
-    manager.onError = (url) => {
-        console.error('Si è verificato un errore durante il caricamento di: ' + url);
-    };
-}
-
-function setAction(name) {
-    if (activeAction && activeAction === actions[name]) return;
-
-    previousAction = activeAction;
-    activeAction = actions[name];
-
-    if (previousAction) {
-        previousAction.fadeOut(0.2);
+        controls.addEventListener('unlock', () => {
+            blocker.style.display = 'block';
+            instructions.style.display = '';
+        });
     }
 
-    if (activeAction) {
-        activeAction.reset().fadeIn(0.2).play();
-    }
+    scene.add(controls.getObject());
+
+    const onKeyDown = (event) => {
+        switch (event.code) {
+            case 'ArrowUp':
+            case 'KeyW':
+                moveForward = true;
+                break;
+            case 'ArrowLeft':
+            case 'KeyA':
+                moveLeft = true;
+                break;
+            case 'ArrowDown':
+            case 'KeyS':
+                moveBackward = true;
+                break;
+            case 'ArrowRight':
+            case 'KeyD':
+                moveRight = true;
+                break;
+            case 'Space':
+                if (canJump && !isFlying) {
+                    velocity.y += 10;
+                    canJump = false;
+                }
+                break;
+            case 'ShiftLeft':
+            case 'ShiftRight':
+                isFlying = true;
+                break;
+        }
+    };
+
+    const onKeyUp = (event) => {
+        switch (event.code) {
+            case 'ArrowUp':
+            case 'KeyW':
+                moveForward = false;
+                break;
+            case 'ArrowLeft':
+            case 'KeyA':
+                moveLeft = false;
+                break;
+            case 'ArrowDown':
+            case 'KeyS':
+                moveBackward = false;
+                break;
+            case 'ArrowRight':
+            case 'KeyD':
+                moveRight = false;
+                break;
+            case 'ShiftLeft':
+            case 'ShiftRight':
+                isFlying = false;
+                break;
+        }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+
+    animate();
 }
 
 function animate() {
     requestAnimationFrame(animate);
 
-    const moveSpeed = 0.1;
-    const rotateSpeed = 0.05;
-
     const delta = clock.getDelta();
 
-    const direction = new THREE.Vector3();
-    if (player) {
-        player.getWorldDirection(direction);
-    } else {
-        return;
-    }
+    if (controls.isLocked) {
+        const acceleration = 500.0;
+        const drag = 20.0;
+        const flySpeed = 25.0; // Velocità di volo
+        const playerHeight = 1.7; // Altezza del personaggio
 
-    const prevPosition = player.position.clone();
+        velocity.x -= velocity.x * drag * delta;
+        velocity.z -= velocity.z * drag * delta;
 
-    const isMovingForward = keys['KeyW'] || keys['ArrowUp'];
-    const isMovingBackward = keys['KeyS'] || keys['ArrowDown'];
-
-    if (isMovingForward || isMovingBackward) {
-        setAction('Armature|CINEMA_4D_Main|Layer0');
-    } else {
-        setAction('Animation');
-    }
-
-    if (isMovingForward) {
-        player.position.add(direction.multiplyScalar(moveSpeed));
-    }
-    if (isMovingBackward) {
-        player.position.add(direction.multiplyScalar(-moveSpeed));
-    }
-
-    if (keys['KeyA'] || keys['ArrowLeft']) {
-        player.rotation.y += rotateSpeed;
-    }
-    if (keys['KeyD'] || keys['ArrowRight']) {
-        player.rotation.y -= rotateSpeed;
-    }
-
-    if (gameWorld.checkCollision(player)) {
-        player.position.copy(prevPosition);
-    }
-
-    const collidedCoin = gameWorld.checkCoinCollision(player);
-    if (collidedCoin) {
-        score += 1;
-        scoreElement.textContent = `Score: ${score}`;
-        scene.remove(collidedCoin);
-        const coinIndex = gameWorld.coins.indexOf(collidedCoin);
-        if (coinIndex > -1) {
-            gameWorld.coins.splice(coinIndex, 1);
+        // Se il volo è attivo, annulla la gravità e gestisci il movimento verticale
+        if (isFlying) {
+            velocity.y = 0;
+            if (moveForward || moveBackward) {
+                // Movimento verticale con le frecce su/giù in modalità volo
+                const directionY = Number(moveForward) - Number(moveBackward);
+                velocity.y = directionY * flySpeed;
+            } else {
+                velocity.y = 0;
+            }
+        } else {
+            velocity.y -= 9.8 * 10.0 * delta; // Gravità normale
         }
-    }
 
-    if (keys['KeyF']) {
-        isFirstPerson = !isFirstPerson;
-        keys['KeyF'] = false;
-    }
+        // Movimento orizzontale
+        direction.z = Number(moveForward) - Number(moveBackward);
+        direction.x = Number(moveRight) - Number(moveLeft);
+        direction.normalize();
 
-    if (isFirstPerson) {
-        camera.position.x = player.position.x;
-        camera.position.y = player.position.y + 0.8;
-        camera.position.z = player.position.z;
-        camera.rotation.y = player.rotation.y;
+        // Controllo collisioni (solo se non si sta volando)
+        if (!isFlying) {
+            if (moveForward || moveBackward) {
+                const movementVector = new THREE.Vector3();
+                camera.getWorldDirection(movementVector);
+                movementVector.y = 0;
+                movementVector.normalize();
+                movementVector.multiplyScalar(direction.z * 0.1);
 
-        const cameraDirection = new THREE.Vector3();
-        player.getWorldDirection(cameraDirection);
-        camera.lookAt(
-            player.position.x + cameraDirection.x,
-            player.position.y + 0.8,
-            player.position.z + cameraDirection.z
-        );
-    } else {
-        camera.position.x = player.position.x;
-        camera.position.y = player.position.y + 5;
-        camera.position.z = player.position.z - 10;
-        camera.lookAt(player.position);
-    }
+                raycaster.set(controls.getObject().position, movementVector);
+                const intersections = raycaster.intersectObjects(gameWorld.collidableObjects, true);
 
-    if (mixer) {
-        mixer.update(delta);
+                if (intersections.length === 0 || intersections[0].distance > 1.0) {
+                    velocity.z -= direction.z * acceleration * delta;
+                } else {
+                    velocity.z = 0;
+                }
+            }
+
+            if (moveLeft || moveRight) {
+                const movementVector = new THREE.Vector3();
+                camera.getWorldDirection(movementVector);
+                const crossVector = new THREE.Vector3(0, 1, 0);
+                movementVector.cross(crossVector);
+                movementVector.multiplyScalar(-direction.x * 0.1);
+
+                raycaster.set(controls.getObject().position, movementVector);
+                const intersections = raycaster.intersectObjects(gameWorld.collidableObjects, true);
+
+                if (intersections.length === 0 || intersections[0].distance > 1.0) {
+                    velocity.x -= direction.x * acceleration * delta;
+                } else {
+                    velocity.x = 0;
+                }
+            }
+        } else {
+            // Se si vola, applica la velocità orizzontale senza collisioni
+            if (direction.x !== 0) velocity.x = -direction.x * flySpeed;
+            if (direction.z !== 0) velocity.z = -direction.z * flySpeed;
+        }
+
+        controls.moveRight(-velocity.x * delta);
+        controls.moveForward(-velocity.z * delta);
+        controls.getObject().position.y += velocity.y * delta;
+
+        // Collisione con il suolo e le scale (solo se non si sta volando)
+        if (!isFlying) {
+            const downwardRaycaster = new THREE.Raycaster(controls.getObject().position, new THREE.Vector3(0, -1, 0), 0, playerHeight);
+            const groundIntersects = downwardRaycaster.intersectObjects(gameWorld.collidableObjects, true);
+
+            if (groundIntersects.length > 0) {
+                const distanceToGround = groundIntersects[0].distance;
+                if (distanceToGround <= playerHeight) {
+                    velocity.y = Math.max(0, velocity.y);
+                    controls.getObject().position.y = controls.getObject().position.y - distanceToGround + playerHeight;
+                    canJump = true;
+                } else {
+                    canJump = false;
+                }
+            } else {
+                canJump = false;
+            }
+        }
     }
 
     renderer.render(scene, camera);

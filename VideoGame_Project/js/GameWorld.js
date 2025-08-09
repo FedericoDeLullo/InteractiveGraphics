@@ -1,4 +1,4 @@
-import * as THREE from 'https://unpkg.com/three@0.126.0/build/three.module.js';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 
 export class GameWorld {
     constructor(scene) {
@@ -36,6 +36,7 @@ export class GameWorld {
         const wallThickness = 0.5;
         const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd });
         const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+        const flor = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
 
         // Questo è il nuovo materiale per l'ultimo muro
         const specialWallMaterial = new THREE.MeshStandardMaterial({ color: 0x696969 });
@@ -57,378 +58,472 @@ export class GameWorld {
 
         if (houseId === 'houseA') {
             // Muro frontale alto (con finestra):
-        createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight + 1, houseDepth / 2);
+            createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight + 1, houseDepth / 2);
 
-        // Muro frontale basso (con finestra):
-        createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight - 21, houseDepth / 2);
+            // Muro frontale basso (con finestra):
+            createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight - 21, houseDepth / 2);
 
-        // Muro frontale destro (con finestra)
-        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, houseWidth - 31 , floorHeight - 10 , houseDepth / 2);
+            // Muro frontale destro (con finestra)
+            createWall(houseWidth / 4 - 1, floorHeight, wallThickness, houseWidth - 31 , floorHeight - 10 , houseDepth / 2);
 
-        // Muro frontale sinistro (con finestra)
-        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, houseDepth / 2);
+            // Muro frontale sinistro (con finestra)
+            createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, houseDepth / 2);
 
-        // Muro frontale centrale (con finestra)
-        createWall(houseWidth / 3 - 2, floorHeight, wallThickness, -(houseWidth / 4 - 12.5), floorHeight / 2, houseDepth / 2);
+            // Muro frontale centrale (con finestra)
+            createWall(houseWidth / 3 - 2, floorHeight, wallThickness, -(houseWidth / 4 - 12.5), floorHeight / 2, houseDepth / 2);
 
-        // Muro striscia centrale (con finestra)
-        createWall(houseWidth, floorHeight / 4, wallThickness, houseWidth - 50, floorHeight - 10, houseDepth / 2);
+            // Muro striscia centrale (con finestra)
+            createWall(houseWidth, floorHeight / 4, wallThickness, houseWidth - 50, floorHeight - 10, houseDepth / 2);
 
 
-        // Muro posteriore
-        createWall(houseWidth, floorHeight, wallThickness, 0, floorHeight / 2, -houseDepth / 2);
+            // Muro posteriore
+            createWall(houseWidth, floorHeight, wallThickness, 0, floorHeight / 2, -houseDepth / 2);
 
-        // Muri laterale alto(con porta)
-        createWall(wallThickness, floorHeight / 2 + 2, houseDepth , houseWidth - 25, floorHeight / 2 + 5, houseDepth - 40);
+            // Muri laterale alto(con porta)
+            createWall(wallThickness, floorHeight / 2 + 2, houseDepth , houseWidth - 25, floorHeight / 2 + 5, houseDepth - 40);
 
-        // Muri laterale (con porta)
+            // Muri laterale (con porta)
 
-        createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, houseWidth - 25, floorHeight - 20,  -(houseDepth - 37));
+            createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, houseWidth - 25, floorHeight - 20,  -(houseDepth - 37));
 
 
-        createWall(wallThickness, floorHeight, houseDepth, -houseWidth / 2, floorHeight / 2, 0);
+            createWall(wallThickness, floorHeight, houseDepth, -houseWidth / 2, floorHeight / 2, 0);
 
-        // Scale per il secondo piano
-        this.createStairs(houseGroup, floorHeight, houseDepth);
+            // Scale per il secondo piano
+            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(10, 0, -houseDepth / 2 + 1), 'z');
 
-        // tetto
-        const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
-        secondFloor.position.y = floorHeight;
-        houseGroup.add(secondFloor);
-        this.collidableObjects.push(secondFloor);
+            // tetto
+            const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
+            secondFloor.position.y = floorHeight;
+            houseGroup.add(secondFloor);
+            this.collidableObjects.push(secondFloor);
 
-        //pavimento del secondo piano
-        const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
-        thirdFloor.position.y = floorHeight / 2;
-        houseGroup.add(thirdFloor);
-        this.collidableObjects.push(thirdFloor);
+            //pavimento del secondo piano
+            const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth /2), floorMaterial);
+            thirdFloor.position.y = floorHeight / 2;
+            thirdFloor.position.z = houseDepth / 2 - 30;
+            houseGroup.add(thirdFloor);
+            this.collidableObjects.push(thirdFloor);
 
-        // --- I due muri per creare le 4 stanze al secondo piano ---
-        const GroundWallHeight = floorHeight;
-        const GroundWallYPosition = floorHeight;
+            //muro posteriore alto
+            const lateralWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 3 + 3, wallThickness, houseDepth ), floorMaterial);
+            lateralWall.position.x = houseWidth / 2 - 10;
+            lateralWall.position.y = floorHeight / 2;
+            lateralWall.position.z = houseDepth / 2 - 20;
+            houseGroup.add(lateralWall);
+            this.collidableObjects.push(lateralWall);
 
-        // Muro orizzontale (allineato all'asse X)
-        createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
+            //muro alto sinistro
+            const upperWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 + 1 , wallThickness, houseDepth ), floorMaterial);
+            upperWall.position.x = houseWidth / 2 - 37;
+            upperWall.position.y = floorHeight / 2;
+            upperWall.position.z = houseDepth / 2 - 20;
+            houseGroup.add(upperWall);
+            this.collidableObjects.push(upperWall);
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
+            //muro frontale alto piccolo
+            const smallWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 - 1 , wallThickness, houseDepth / 4), floorMaterial);
+            smallWall.position.x = houseWidth / 2 - 20;
+            smallWall.position.y = floorHeight / 2;
+            smallWall.position.z = houseDepth / 2 - 5;
+            houseGroup.add(smallWall);
+            this.collidableObjects.push(smallWall);
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, 5, -GroundWallYPosition + 28, 0, specialWallMaterial);
 
-        // Muro verticale (allineato all'asse Z)
-        createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMateriall);
-        createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, -5, specialWallMateriall);
-        createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, 5, specialWallMateriall);
+            //muro delle scale
+            const stairWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, floorHeight / 2, houseDepth / 2), floorMaterial);
+            stairWall.position.y = floorHeight / 2 + 5;
+            stairWall.position.x = houseWidth / 2 - 19;
+            stairWall.position.z = houseDepth / 2 - 10;
+            houseGroup.add(stairWall);
+            this.collidableObjects.push(stairWall);
 
+            //muro posteriore delle scale
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 - 19, floorHeight / 2, wallThickness), floorMaterial);
+            backWall.position.y = floorHeight / 2 + 5;
+            backWall.position.x = houseWidth / 2 - 22;
+            backWall.position.z = houseDepth / 2 - 10;
+            houseGroup.add(backWall);
+            this.collidableObjects.push(backWall);
 
 
-        // --- I due muri per creare le 4 stanze al secondo piano ---
-        const wallHeight = floorHeight / 2;
-        const wallYPosition = floorHeight / 2 + 5;
+            // --- I due muri per creare le 4 stanze al primo piano ---
+            const GroundWallHeight = floorHeight;
+            const GroundWallYPosition = floorHeight;
 
-        // Muro orizzontale (allineato all'asse X)
-        createWall(houseWidth / 2 + 17, wallHeight, wallThickness, 0, wallYPosition, 0, specialWallMaterial);
+            // Muro orizzontale (allineato all'asse X)
+            createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, 5, -GroundWallYPosition + 28, 0, specialWallMaterial);
 
-        // Muro verticale (allineato all'asse Z)
-        createWall(wallThickness, wallHeight, houseDepth / 2 + 12, 0, wallYPosition, 0, specialWallMateriall);
-        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMateriall);
-        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
+            // Muro verticale (allineato all'asse Z)
+            createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMateriall);
+            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 15, 0, GroundWallYPosition - 9, 2.5, specialWallMaterial);
 
-        this.scene.add(houseGroup);
-        this.houses.push(houseGroup);
-        }
 
-        if (houseId === 'houseB') {
-           // Muro frontale alto (con finestra):
-        createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight + 1, houseDepth / 2);
 
-        // Muro frontale basso (con finestra):
-        createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight - 21, houseDepth / 2);
+            // --- I due muri per creare le 4 stanze al secondo piano ---
+            const wallHeight = floorHeight / 2;
+            const wallYPosition = floorHeight / 2 + 5;
 
-        // Muro frontale destro (con finestra)
-        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, houseWidth - 31 , floorHeight - 10 , houseDepth / 2);
+            // Muro orizzontale (allineato all'asse X)
+            createWall(houseWidth / 3 - 0.5 , wallHeight, wallThickness, 13.5, wallYPosition, 0, specialWallMaterial);
+            createWall(houseWidth / 2 - 5 , wallHeight, wallThickness, -10, wallYPosition, 0, specialWallMaterial);
 
-        // Muro frontale sinistro (con finestra)
-        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, houseDepth / 2);
 
-        // Muro frontale centrale (con finestra)
-        createWall(houseWidth / 3 - 2, floorHeight, wallThickness, -(houseWidth / 4 - 12.5), floorHeight / 2, houseDepth / 2);
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
 
-        // Muro striscia centrale (con finestra)
-        createWall(houseWidth, floorHeight / 4, wallThickness, houseWidth - 50, floorHeight - 10, houseDepth / 2);
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
 
+            // Muro verticale (allineato all'asse Z)
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMaterial);
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
 
-        // Muro posteriore
-        createWall(houseWidth, floorHeight, wallThickness, 0, floorHeight / 2, -houseDepth / 2);
+            this.scene.add(houseGroup);
+            this.houses.push(houseGroup);
+            }
 
-        // Muri laterale alto(con porta)
-        createWall(wallThickness, floorHeight / 2 + 2, houseDepth , -(houseWidth - 25), floorHeight / 2 + 5, houseDepth - 40);
+            if (houseId === 'houseB') {
+                // Muro frontale alto (con finestra):
+            createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight + 1, houseDepth / 2);
 
-        // Muri laterale (con porta)
+            // Muro frontale basso (con finestra):
+            createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight - 21, houseDepth / 2);
 
-        createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, -(houseWidth - 25), floorHeight - 20,  -(houseDepth - 37));
+            // Muro frontale destro (con finestra)
+            createWall(houseWidth / 4 - 1, floorHeight, wallThickness, houseWidth - 31 , floorHeight - 10 , houseDepth / 2);
 
+            // Muro frontale sinistro (con finestra)
+            createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, houseDepth / 2);
 
-        createWall(wallThickness, floorHeight, houseDepth, houseWidth / 2, floorHeight / 2, 0);
+            // Muro frontale centrale (con finestra)
+            createWall(houseWidth / 3 - 2, floorHeight, wallThickness, -(houseWidth / 4 - 12.5), floorHeight / 2, houseDepth / 2);
 
-        // Scale per il secondo piano
-        this.createStairs(houseGroup, floorHeight, houseDepth);
+            // Muro striscia centrale (con finestra)
+            createWall(houseWidth, floorHeight / 4, wallThickness, houseWidth - 50, floorHeight - 10, houseDepth / 2);
 
-        // tetto
-        const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
-        secondFloor.position.y = floorHeight;
-        houseGroup.add(secondFloor);
-        this.collidableObjects.push(secondFloor);
 
-        //pavimento del secondo piano
-        const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
-        thirdFloor.position.y = floorHeight / 2;
-        houseGroup.add(thirdFloor);
-        this.collidableObjects.push(thirdFloor);
+            // Muro posteriore
+            createWall(houseWidth, floorHeight, wallThickness, 0, floorHeight / 2, -houseDepth / 2);
 
-        // --- I due muri per creare le 4 stanze al secondo piano ---
-        const GroundWallHeight = floorHeight;
-        const GroundWallYPosition = floorHeight;
+            // Muri laterale alto(con porta)
+            createWall(wallThickness, floorHeight / 2 + 2, houseDepth , -(houseWidth - 25), floorHeight / 2 + 5, houseDepth - 40);
 
-        // Muro orizzontale (allineato all'asse X)
-        createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
+            // Muri laterale (con porta)
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
+            createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, -(houseWidth - 25), floorHeight - 20,  -(houseDepth - 37));
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, 5, -GroundWallYPosition + 28, 0, specialWallMaterial);
 
-        // Muro verticale (allineato all'asse Z)
-        createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMateriall);
-        createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, -5, specialWallMateriall);
-        createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, 5, specialWallMateriall);
+            createWall(wallThickness, floorHeight, houseDepth, houseWidth / 2, floorHeight / 2, 0);
 
+            // Scale per il secondo piano
+            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(-10, 0, -houseDepth / 2 + 1), 'z');
 
+            // tetto
+            const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
+            secondFloor.position.y = floorHeight;
+            houseGroup.add(secondFloor);
+            this.collidableObjects.push(secondFloor);
 
-        // --- I due muri per creare le 4 stanze al secondo piano ---
-        const wallHeight = floorHeight / 2;
-        const wallYPosition = floorHeight / 2 + 5;
+            //pavimento del secondo piano
+            const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth /2), floorMaterial);
+            thirdFloor.position.y = floorHeight / 2;
+            thirdFloor.position.z = houseDepth / 2 - 30;
+            houseGroup.add(thirdFloor);
+            this.collidableObjects.push(thirdFloor);
 
-        // Muro orizzontale (allineato all'asse X)
-        createWall(houseWidth / 2 + 17, wallHeight, wallThickness, 0, wallYPosition, 0, specialWallMaterial);
+            //muro SINISTRO  PIATTO alto
+            const lateralWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 3 + 3, wallThickness, houseDepth ), floorMaterial);
+            lateralWall.position.x = -(houseWidth / 2 - 10);
+            lateralWall.position.y = floorHeight / 2;
+            lateralWall.position.z = houseDepth / 2 - 20;
+            houseGroup.add(lateralWall);
+            this.collidableObjects.push(lateralWall);
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
+            //muro alto sinistro
+            const upperWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 + 1 , wallThickness, houseDepth ), floorMaterial);
+            upperWall.position.x = -(houseWidth / 2 - 37);
+            upperWall.position.y = floorHeight / 2;
+            upperWall.position.z = houseDepth / 2 - 20;
+            houseGroup.add(upperWall);
+            this.collidableObjects.push(upperWall);
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
+            //muro frontale alto piccolo
+            const smallWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 - 1 , wallThickness, houseDepth / 4), floorMaterial);
+            smallWall.position.x = -(houseWidth / 2 - 20);
+            smallWall.position.y = floorHeight / 2;
+            smallWall.position.z = houseDepth / 2 - 5;
+            houseGroup.add(smallWall);
+            this.collidableObjects.push(smallWall);
 
-        // Muro verticale (allineato all'asse Z)
-        createWall(wallThickness, wallHeight, houseDepth / 2 + 12, 0, wallYPosition, 0, specialWallMateriall);
-        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMateriall);
-        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
 
-        this.scene.add(houseGroup);
-        this.houses.push(houseGroup);
-        }
+            //muro delle scale
+            const stairWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, floorHeight / 2, houseDepth / 2), floorMaterial);
+            stairWall.position.y = floorHeight / 2 + 5;
+            stairWall.position.x = -(houseWidth / 2 - 19);
+            stairWall.position.z = houseDepth / 2 - 10;
+            houseGroup.add(stairWall);
+            this.collidableObjects.push(stairWall);
 
-        if (houseId === 'houseC') {
-        // Muro frontale alto (con finestra):
-        createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight + 1, -(houseDepth / 2));
+            //muro posteriore delle scale
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 - 19, floorHeight / 2, wallThickness), floorMaterial);
+            backWall.position.y = floorHeight / 2 + 5;
+            backWall.position.x = -(houseWidth / 2 - 22);
+            backWall.position.z = houseDepth / 2 - 10;
+            houseGroup.add(backWall);
+            this.collidableObjects.push(backWall);
 
-        // Muro frontale basso (con finestra):
-        createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight - 21, -(houseDepth / 2));
 
-        // Muro frontale destro (con finestra)
-        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, houseWidth - 31 , floorHeight - 10 , -(houseDepth / 2));
+            // --- I due muri per creare le 4 stanze al primo piano ---
+            const GroundWallHeight = floorHeight;
+            const GroundWallYPosition = floorHeight;
 
-        // Muro frontale sinistro (con finestra)
-        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, -(houseDepth / 2));
+            // Muro orizzontale (allineato all'asse X)
+            createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
 
-        // Muro frontale centrale (con finestra)
-        createWall(houseWidth / 3 - 2, floorHeight, wallThickness, -(houseWidth / 4 - 12.5), floorHeight / 2, -(houseDepth / 2));
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, 5, -GroundWallYPosition + 28, 0, specialWallMaterial);
 
-        // Muro striscia centrale (con finestra)
-        createWall(houseWidth, floorHeight / 4, wallThickness, houseWidth - 50, floorHeight - 10, -(houseDepth / 2));
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
 
+            // Muro verticale (allineato all'asse Z)
+            createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMaterial);
+            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 15, 0, GroundWallYPosition - 9, 2.5, specialWallMaterial);
 
-        // Muro posteriore
-        createWall(houseWidth, floorHeight, wallThickness, 0, floorHeight / 2, houseDepth / 2);
 
-        // Muri laterale alto(con porta)
-        createWall(wallThickness, floorHeight / 2 + 2, houseDepth , houseWidth - 25, floorHeight / 2 + 5, -(houseDepth - 40));
 
-        // Muri laterale (con porta)
+            // --- I due muri per creare le 4 stanze al secondo piano ---
+            const wallHeight = floorHeight / 2;
+            const wallYPosition = floorHeight / 2 + 5;
 
-        createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, houseWidth - 25, floorHeight - 20,  houseDepth - 37);
+            // Muro orizzontale (allineato all'asse X)
+            createWall(houseWidth / 3 - 0.5 , wallHeight, wallThickness, -13.5, wallYPosition, 0, specialWallMaterial);
+            createWall(houseWidth / 2 - 5 , wallHeight, wallThickness, 10, wallYPosition, 0, specialWallMaterial);
 
 
-        createWall(wallThickness, floorHeight, houseDepth, -(houseWidth / 2), floorHeight / 2, 0);
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
 
-        // Scale per il secondo piano
-        this.createStairs(houseGroup, floorHeight, houseDepth);
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
 
-        // tetto
-        const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
-        secondFloor.position.y = floorHeight;
-        houseGroup.add(secondFloor);
-        this.collidableObjects.push(secondFloor);
+            // Muro verticale (allineato all'asse Z)
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMaterial);
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMateriall);
 
-        //pavimento del secondo piano
-        const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
-        thirdFloor.position.y = floorHeight / 2;
-        houseGroup.add(thirdFloor);
-        this.collidableObjects.push(thirdFloor);
+            this.scene.add(houseGroup);
+            this.houses.push(houseGroup);
+            }
 
-        // --- I due muri per creare le 4 stanze al secondo piano ---
-        const GroundWallHeight = floorHeight;
-        const GroundWallYPosition = floorHeight;
+            if (houseId === 'houseC') {
+            // Muro frontale alto (con finestra):
+            createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight + 1, -(houseDepth / 2));
 
-        // Muro orizzontale (allineato all'asse X)
-        createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
+            // Muro frontale basso (con finestra):
+            createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight - 21, -(houseDepth / 2));
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
+            // Muro frontale destro (con finestra)
+            createWall(houseWidth / 4 - 1, floorHeight, wallThickness, houseWidth - 31 , floorHeight - 10 , -(houseDepth / 2));
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, 5, -GroundWallYPosition + 28, 0, specialWallMaterial);
+            // Muro frontale sinistro (con finestra)
+            createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, -(houseDepth / 2));
 
-        // Muro verticale (allineato all'asse Z)
-        createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMateriall);
-        createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, -5, specialWallMateriall);
-        createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, 5, specialWallMateriall);
+            // Muro frontale centrale (con finestra)
+            createWall(houseWidth / 3 - 2, floorHeight, wallThickness, -(houseWidth / 4 - 12.5), floorHeight / 2, -(houseDepth / 2));
 
+            // Muro striscia centrale (con finestra)
+            createWall(houseWidth, floorHeight / 4, wallThickness, houseWidth - 50, floorHeight - 10, -(houseDepth / 2));
 
 
-        // --- I due muri per creare le 4 stanze al secondo piano ---
-        const wallHeight = floorHeight / 2;
-        const wallYPosition = floorHeight / 2 + 5;
+            // Muro posteriore
+            createWall(houseWidth, floorHeight, wallThickness, 0, floorHeight / 2, houseDepth / 2);
 
-        // Muro orizzontale (allineato all'asse X)
-        createWall(houseWidth / 2 + 17, wallHeight, wallThickness, 0, wallYPosition, 0, specialWallMaterial);
+            // Muri laterale alto(con porta)
+            createWall(wallThickness, floorHeight / 2 + 2, houseDepth , houseWidth - 25, floorHeight / 2 + 5, -(houseDepth - 40));
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
+            // Muri laterale (con porta)
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
+            createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, houseWidth - 25, floorHeight - 20,  houseDepth - 37);
 
-        // Muro verticale (allineato all'asse Z)
-        createWall(wallThickness, wallHeight, houseDepth / 2 + 12, 0, wallYPosition, 0, specialWallMateriall);
-        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMateriall);
-        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
 
-        this.scene.add(houseGroup);
-        this.houses.push(houseGroup);
-        }
+            createWall(wallThickness, floorHeight, houseDepth, -(houseWidth / 2), floorHeight / 2, 0);
 
-        if (houseId === 'houseD') {
-        // Muro frontale alto (con finestra):
-        createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight + 1, -(houseDepth / 2));
+            // Scale per il secondo piano
+            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(10, 0, houseDepth / 2 - 1), 'z');
 
-        // Muro frontale basso (con finestra):
-        createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight - 21, -(houseDepth / 2));
+            // tetto
+            const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
+            secondFloor.position.y = floorHeight;
+            houseGroup.add(secondFloor);
+            this.collidableObjects.push(secondFloor);
 
-        // Muro frontale destro (con finestra)
-        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, houseWidth - 31 , floorHeight - 10 , -(houseDepth / 2));
+            //pavimento del secondo piano
+            const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
+            thirdFloor.position.y = floorHeight / 2;
+            houseGroup.add(thirdFloor);
+            this.collidableObjects.push(thirdFloor);
 
-        // Muro frontale sinistro (con finestra)
-        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, -(houseDepth / 2));
+            // --- I due muri per creare le 4 stanze al secondo piano ---
+            const GroundWallHeight = floorHeight;
+            const GroundWallYPosition = floorHeight;
 
-        // Muro frontale centrale (con finestra)
-        createWall(houseWidth / 3 - 2, floorHeight, wallThickness, -(houseWidth / 4 - 12.5), floorHeight / 2, -(houseDepth / 2));
+            // Muro orizzontale (allineato all'asse X)
+            createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
 
-        // Muro striscia centrale (con finestra)
-        createWall(houseWidth, floorHeight / 4, wallThickness, houseWidth - 50, floorHeight - 10, -(houseDepth / 2));
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
 
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, 5, -GroundWallYPosition + 28, 0, specialWallMaterial);
 
-        // Muro posteriore
-        createWall(houseWidth, floorHeight, wallThickness, 0, floorHeight / 2, houseDepth / 2);
+            // Muro verticale (allineato all'asse Z)
+            createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMateriall);
+            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, -5, specialWallMateriall);
+            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, 5, specialWallMateriall);
 
-        // Muri laterale alto(con porta)
-        createWall(wallThickness, floorHeight / 2 + 2, houseDepth , -(houseWidth - 25), floorHeight / 2 + 5, -(houseDepth - 40));
 
-        // Muri laterale (con porta)
 
-        createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, -(houseWidth - 25), floorHeight - 20,  houseDepth - 37);
+            // --- I due muri per creare le 4 stanze al secondo piano ---
+            const wallHeight = floorHeight / 2;
+            const wallYPosition = floorHeight / 2 + 5;
 
+            // Muro orizzontale (allineato all'asse X)
+            createWall(houseWidth / 2 + 17, wallHeight, wallThickness, 0, wallYPosition, 0, specialWallMaterial);
 
-        createWall(wallThickness, floorHeight, houseDepth, houseWidth / 2, floorHeight / 2, 0);
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
 
-        // Scale per il secondo piano
-        this.createStairs(houseGroup, floorHeight, houseDepth);
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
 
-        // tetto
-        const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
-        secondFloor.position.y = floorHeight;
-        houseGroup.add(secondFloor);
-        this.collidableObjects.push(secondFloor);
+            // Muro verticale (allineato all'asse Z)
+            createWall(wallThickness, wallHeight, houseDepth / 2 + 12, 0, wallYPosition, 0, specialWallMateriall);
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMateriall);
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
 
-        //pavimento del secondo piano
-        const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
-        thirdFloor.position.y = floorHeight / 2;
-        houseGroup.add(thirdFloor);
-        this.collidableObjects.push(thirdFloor);
+            this.scene.add(houseGroup);
+            this.houses.push(houseGroup);
+            }
 
-        // --- I due muri per creare le 4 stanze al secondo piano ---
-        const GroundWallHeight = floorHeight;
-        const GroundWallYPosition = floorHeight;
+            if (houseId === 'houseD') {
+            // Muro frontale alto (con finestra):
+            createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight + 1, -(houseDepth / 2));
 
-        // Muro orizzontale (allineato all'asse X)
-        createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
+            // Muro frontale basso (con finestra):
+            createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight - 21, -(houseDepth / 2));
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
+            // Muro frontale destro (con finestra)
+            createWall(houseWidth / 4 - 1, floorHeight, wallThickness, houseWidth - 31 , floorHeight - 10 , -(houseDepth / 2));
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, 5, -GroundWallYPosition + 28, 0, specialWallMaterial);
+            // Muro frontale sinistro (con finestra)
+            createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, -(houseDepth / 2));
 
-        // Muro verticale (allineato all'asse Z)
-        createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMateriall);
-        createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, -5, specialWallMateriall);
-        createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, 5, specialWallMateriall);
+            // Muro frontale centrale (con finestra)
+            createWall(houseWidth / 3 - 2, floorHeight, wallThickness, -(houseWidth / 4 - 12.5), floorHeight / 2, -(houseDepth / 2));
 
+            // Muro striscia centrale (con finestra)
+            createWall(houseWidth, floorHeight / 4, wallThickness, houseWidth - 50, floorHeight - 10, -(houseDepth / 2));
 
 
-        // --- I due muri per creare le 4 stanze al secondo piano ---
-        const wallHeight = floorHeight / 2;
-        const wallYPosition = floorHeight / 2 + 5;
+            // Muro posteriore
+            createWall(houseWidth, floorHeight, wallThickness, 0, floorHeight / 2, houseDepth / 2);
 
-        // Muro orizzontale (allineato all'asse X)
-        createWall(houseWidth / 2 + 17, wallHeight, wallThickness, 0, wallYPosition, 0, specialWallMaterial);
+            // Muri laterale alto(con porta)
+            createWall(wallThickness, floorHeight / 2 + 2, houseDepth , -(houseWidth - 25), floorHeight / 2 + 5, -(houseDepth - 40));
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
+            // Muri laterale (con porta)
 
-        // Muro orizzontale sopra porta
-        createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
+            createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, -(houseWidth - 25), floorHeight - 20,  houseDepth - 37);
 
-        // Muro verticale (allineato all'asse Z)
-        createWall(wallThickness, wallHeight, houseDepth / 2 + 12, 0, wallYPosition, 0, specialWallMateriall);
-        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMateriall);
-        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
 
-        this.scene.add(houseGroup);
-        this.houses.push(houseGroup);
-        }
+            createWall(wallThickness, floorHeight, houseDepth, houseWidth / 2, floorHeight / 2, 0);
+
+            // Scale per il secondo piano
+            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(-10, 0, houseDepth / 2 - 1), 'z');
+
+            // tetto
+            const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
+            secondFloor.position.y = floorHeight;
+            houseGroup.add(secondFloor);
+            this.collidableObjects.push(secondFloor);
+
+            //pavimento del secondo piano
+            const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth - 150, wallThickness, houseDepth), floorMaterial);
+            thirdFloor.position.y = floorHeight / 2;
+            houseGroup.add(thirdFloor);
+            this.collidableObjects.push(thirdFloor);
+
+            // --- I due muri per creare le 4 stanze al secondo piano ---
+            const GroundWallHeight = floorHeight;
+            const GroundWallYPosition = floorHeight;
+
+            // Muro orizzontale (allineato all'asse X)
+            createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
+
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
+
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, 5, -GroundWallYPosition + 28, 0, specialWallMaterial);
+
+            // Muro verticale (allineato all'asse Z)
+            createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMateriall);
+            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, -5, specialWallMateriall);
+            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, 5, specialWallMateriall);
+
+
+
+            // --- I due muri per creare le 4 stanze al secondo piano ---
+            const wallHeight = floorHeight / 2;
+            const wallYPosition = floorHeight / 2 + 5;
+
+            // Muro orizzontale (allineato all'asse X)
+            createWall(houseWidth / 2 + 17, wallHeight, wallThickness, 0, wallYPosition, 0, specialWallMaterial);
+
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
+
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
+
+            // Muro verticale (allineato all'asse Z)
+            createWall(wallThickness, wallHeight, houseDepth / 2 + 12, 0, wallYPosition, 0, specialWallMateriall);
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMateriall);
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
+
+            this.scene.add(houseGroup);
+            this.houses.push(houseGroup);
+            }
     }
 
-    createStairs(parent, floorHeight, houseDepth) {
-        const stairWidth = 4;
-        const stairHeight = 0.7;
-        const numSteps = floorHeight / stairHeight;
+    createStairs(parent, floorHeight, houseDepth, startPosition, orientation) {
+        const stairWidth = 6;
+        const stairHeight = 1.2;
+        const numSteps = floorHeight / stairHeight - 9;
         const stairMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
 
         for (let i = 0; i < numSteps; i++) {
             const stairGeometry = new THREE.BoxGeometry(stairWidth, stairHeight, 2);
             const stair = new THREE.Mesh(stairGeometry, stairMaterial);
 
-            const x = 10;
-            const y = (i * stairHeight) + stairHeight / 2; // Correzione della posizione Y
-            const z = -houseDepth / 2 + 1 + (i * 2); // Posizione Z rivista
+            let x = startPosition.x;
+            const y = (i * stairHeight) + stairHeight / 2;
+            let z = startPosition.z;
+
+            // Allinea le scale in base all'orientamento
+            if (orientation === 'x') {
+                x = startPosition.x + (i * 2);
+                stair.rotation.y = Math.PI / 2; // Ruota di 90 gradi per allinearle all'asse X
+            } else { // 'z' di default
+                z = startPosition.z + (i * 2);
+            }
 
             stair.position.set(x, y, z);
             parent.add(stair);

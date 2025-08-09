@@ -85,7 +85,7 @@ function init() {
                 break;
             case 'Space':
                 if (canJump && !isFlying) {
-                    velocity.y += 10;
+                    velocity.y += 30;
                     canJump = false;
                 }
                 break;

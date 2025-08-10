@@ -4,10 +4,30 @@ export class GameWorld {
     constructor(scene) {
         this.scene = scene;
         this.houses = [];
+        this.trees = []; // Aggiunto un array per gli alberi
         this.collidableObjects = [];
+
     }
 
     createHouses() {
+       this.createRoad(20, 100, 0, 0);   // Segmento verticale principale
+        this.createRoad(100, 20, 0, -40); // Segmento orizzontale in basso
+        this.createRoad(100, 20, 0, 40);  // Segmento orizzontale in alto
+        this.createRoad(100, 20, -40, 0);
+        this.createRoad(100, 20, 40, 0);
+        this.createRoad(100, 20, -40, 0);
+        this.createRoad(20, 100, -50, 0 );
+        this.createRoad(20, 100, 50, 0 );
+
+
+        this.createTree(new THREE.Vector3(-25, 0, -20), 5, 1, 10, 5);
+        this.createTree(new THREE.Vector3(25, 0, -20), 5, 1, 10, 5);
+        this.createTree(new THREE.Vector3(-25, 0, 20), 5, 1, 10, 5);
+        this.createTree(new THREE.Vector3(25, 0, 20), 5, 1, 10, 5);
+
+
+
+
         this.createGround();
         // Assegna un nome unico a ogni casa
         this.createDetailedHouse(new THREE.Vector3(-60, 0, -60), 'houseA');
@@ -15,6 +35,34 @@ export class GameWorld {
         this.createDetailedHouse(new THREE.Vector3(-60, 0, 60), 'houseC');
         this.createDetailedHouse(new THREE.Vector3(60, 0, 60), 'houseD');
     }
+
+
+    // Crea un albero con tronco e chioma
+    createTree(position, trunkHeight, trunkRadius, foliageHeight, foliageRadius) {
+        const treeGroup = new THREE.Group();
+
+        // Tronco
+        const trunkGeometry = new THREE.CylinderGeometry(trunkRadius, trunkRadius, trunkHeight, 8);
+        const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+        trunk.position.y = trunkHeight / 2;
+        treeGroup.add(trunk);
+
+        // Chioma
+        const foliageGeometry = new THREE.ConeGeometry(foliageRadius, foliageHeight, 16);
+        const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+        const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+        foliage.position.y = trunkHeight + foliageHeight / 2;
+        treeGroup.add(foliage);
+
+        // Posiziona l'intero gruppo dell'albero
+        treeGroup.position.copy(position);
+        this.scene.add(treeGroup);
+        this.trees.push(treeGroup);
+        this.collidableObjects.push(trunk, foliage);
+    }
+
+
 
     createGround() {
         const groundGeometry = new THREE.BoxGeometry(200, 0.1, 200);
@@ -25,6 +73,15 @@ export class GameWorld {
         this.collidableObjects.push(ground);
     }
 
+    // Funzione per creare un segmento di strada
+    createRoad(width, depth, positionX, positionZ) {
+        const roadGeometry = new THREE.BoxGeometry(width, 0.2, depth);
+        const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
+        const road = new THREE.Mesh(roadGeometry, roadMaterial);
+        road.position.set(positionX, 0.05, positionZ);
+        this.scene.add(road);
+        this.collidableObjects.push(road);
+    }
     createDetailedHouse(position, houseId) { // Accetta il parametro 'houseId'
         const houseGroup = new THREE.Group();
         houseGroup.position.copy(position);
@@ -90,7 +147,11 @@ export class GameWorld {
             createWall(wallThickness, floorHeight, houseDepth, -houseWidth / 2, floorHeight / 2, 0);
 
             // Scale per il secondo piano
-            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(10, 0, -houseDepth / 2 + 1), 'z');
+            // --- SCALA PER LA CASA A (ALLINEATA SULL'ASSE Z) IN DIREZIONE OPPOSTA ---
+            // Posizione iniziale: x=10, z = inizio della casa (-houseDepth / 2 + 1)
+            // Orientamento: 'z'
+            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(3, 0, -houseDepth / 5 + 23), 'z-reversed');
+
 
             // tetto
             const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
@@ -163,6 +224,7 @@ export class GameWorld {
             // Muro verticale (allineato all'asse Z)
             createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMateriall);
             createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 15, 0, GroundWallYPosition - 9, 2.5, specialWallMaterial);
+            createWall(wallThickness, GroundWallHeight / 4 - 1, houseDepth / 2 - 5, 0, GroundWallYPosition - 12, -12.5, specialWallMaterial);
 
 
 
@@ -223,7 +285,10 @@ export class GameWorld {
             createWall(wallThickness, floorHeight, houseDepth, houseWidth / 2, floorHeight / 2, 0);
 
             // Scale per il secondo piano
-            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(-10, 0, -houseDepth / 2 + 1), 'z');
+            // --- SCALA PER LA CASA B (ALLINEATA SULL'ASSE X) ---
+            // Posizione iniziale: x=0, z = -10 (valore costante)
+            // Orientamento: 'x'
+            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(-3, 0, 15), 'z-reversed');
 
             // tetto
             const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
@@ -296,6 +361,7 @@ export class GameWorld {
             // Muro verticale (allineato all'asse Z)
             createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMaterial);
             createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 15, 0, GroundWallYPosition - 9, 2.5, specialWallMaterial);
+            createWall(wallThickness, GroundWallHeight / 4 - 1, houseDepth / 2 - 5, 0, GroundWallYPosition - 12, -12.5, specialWallMaterial);
 
 
 
@@ -356,21 +422,63 @@ export class GameWorld {
             createWall(wallThickness, floorHeight, houseDepth, -(houseWidth / 2), floorHeight / 2, 0);
 
             // Scale per il secondo piano
-            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(10, 0, houseDepth / 2 - 1), 'z');
+            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(6, 0, houseDepth / 2), 'z');
 
-            // tetto
+             // tetto
             const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
             secondFloor.position.y = floorHeight;
             houseGroup.add(secondFloor);
             this.collidableObjects.push(secondFloor);
 
             //pavimento del secondo piano
-            const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
+            const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth /2), floorMaterial);
             thirdFloor.position.y = floorHeight / 2;
+            thirdFloor.position.z = -(houseDepth / 2 - 30);
             houseGroup.add(thirdFloor);
             this.collidableObjects.push(thirdFloor);
 
-            // --- I due muri per creare le 4 stanze al secondo piano ---
+            //muro SINISTRO  PIATTO alto
+            const lateralWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 3 + 3, wallThickness, houseDepth ), floorMaterial);
+            lateralWall.position.x = houseWidth / 2 - 10;
+            lateralWall.position.y = floorHeight / 2;
+            lateralWall.position.z = -(houseDepth / 2 - 20);
+            houseGroup.add(lateralWall);
+            this.collidableObjects.push(lateralWall);
+
+            //muro alto sinistro
+            const upperWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 + 1 , wallThickness, houseDepth ), floorMaterial);
+            upperWall.position.x = houseWidth / 2 - 37;
+            upperWall.position.y = floorHeight / 2;
+            upperWall.position.z = -(houseDepth / 2 - 20);
+            houseGroup.add(upperWall);
+            this.collidableObjects.push(upperWall);
+
+            //muro frontale alto piccolo
+            const smallWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 - 1 , wallThickness, houseDepth / 4), floorMaterial);
+            smallWall.position.x = houseWidth / 2 - 20;
+            smallWall.position.y = floorHeight / 2;
+            smallWall.position.z = -(houseDepth / 2 - 5);
+            houseGroup.add(smallWall);
+            this.collidableObjects.push(smallWall);
+
+
+            //muro delle scale
+            const stairWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, floorHeight / 2, houseDepth / 2), floorMaterial);
+            stairWall.position.y = floorHeight / 2 + 5;
+            stairWall.position.x = houseWidth / 2 - 19;
+            stairWall.position.z = -(houseDepth / 2 - 10);
+            houseGroup.add(stairWall);
+            this.collidableObjects.push(stairWall);
+
+            //muro posteriore delle scale
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 - 19, floorHeight / 2, wallThickness), floorMaterial);
+            backWall.position.y = floorHeight / 2 + 5;
+            backWall.position.x = houseWidth / 2 - 22;
+            backWall.position.z = -(houseDepth / 2 - 10);
+            houseGroup.add(backWall);
+            this.collidableObjects.push(backWall);
+
+            // --- I due muri per creare le 4 stanze al primo piano ---
             const GroundWallHeight = floorHeight;
             const GroundWallYPosition = floorHeight;
 
@@ -378,15 +486,14 @@ export class GameWorld {
             createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
 
             // Muro orizzontale sopra porta
-            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
-
-            // Muro orizzontale sopra porta
             createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, 5, -GroundWallYPosition + 28, 0, specialWallMaterial);
 
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
+
             // Muro verticale (allineato all'asse Z)
-            createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMateriall);
-            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, -5, specialWallMateriall);
-            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, 5, specialWallMateriall);
+            createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMaterial);
+            createWall(wallThickness, GroundWallHeight / 4 - 1, houseDepth / 2 - 5, 0, GroundWallYPosition - 12, -12.5, specialWallMaterial);
 
 
 
@@ -395,7 +502,9 @@ export class GameWorld {
             const wallYPosition = floorHeight / 2 + 5;
 
             // Muro orizzontale (allineato all'asse X)
-            createWall(houseWidth / 2 + 17, wallHeight, wallThickness, 0, wallYPosition, 0, specialWallMaterial);
+            createWall(houseWidth / 3 - 0.5 , wallHeight, wallThickness, 13.5, wallYPosition, 0, specialWallMaterial);
+            createWall(houseWidth / 2 - 5 , wallHeight, wallThickness, -10, wallYPosition, 0, specialWallMaterial);
+
 
             // Muro orizzontale sopra porta
             createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
@@ -404,9 +513,10 @@ export class GameWorld {
             createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
 
             // Muro verticale (allineato all'asse Z)
-            createWall(wallThickness, wallHeight, houseDepth / 2 + 12, 0, wallYPosition, 0, specialWallMateriall);
-            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMateriall);
-            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMaterial);
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMaterial);
+            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 15, 0, GroundWallYPosition - 9, -2.5, specialWallMaterial);
+
 
             this.scene.add(houseGroup);
             this.houses.push(houseGroup);
@@ -446,21 +556,63 @@ export class GameWorld {
             createWall(wallThickness, floorHeight, houseDepth, houseWidth / 2, floorHeight / 2, 0);
 
             // Scale per il secondo piano
-            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(-10, 0, houseDepth / 2 - 1), 'z');
+            this.createStairs(houseGroup, floorHeight, houseDepth, new THREE.Vector3(-3, 0, houseDepth / 2 - 35 ), 'z');
 
-            // tetto
+             // tetto
             const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
             secondFloor.position.y = floorHeight;
             houseGroup.add(secondFloor);
             this.collidableObjects.push(secondFloor);
 
             //pavimento del secondo piano
-            const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth - 150, wallThickness, houseDepth), floorMaterial);
+            const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth /2), floorMaterial);
             thirdFloor.position.y = floorHeight / 2;
+            thirdFloor.position.z = -(houseDepth / 2 - 30);
             houseGroup.add(thirdFloor);
             this.collidableObjects.push(thirdFloor);
 
-            // --- I due muri per creare le 4 stanze al secondo piano ---
+            //muro SINISTRO  PIATTO alto
+            const lateralWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 3 + 3, wallThickness, houseDepth ), floorMaterial);
+            lateralWall.position.x = -(houseWidth / 2 - 10);
+            lateralWall.position.y = floorHeight / 2;
+            lateralWall.position.z = -(houseDepth / 2 - 20);
+            houseGroup.add(lateralWall);
+            this.collidableObjects.push(lateralWall);
+
+            //muro alto sinistro
+            const upperWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 + 1 , wallThickness, houseDepth ), floorMaterial);
+            upperWall.position.x = -(houseWidth / 2 - 37);
+            upperWall.position.y = floorHeight / 2;
+            upperWall.position.z = -(houseDepth / 2 - 20);
+            houseGroup.add(upperWall);
+            this.collidableObjects.push(upperWall);
+
+            //muro frontale alto piccolo
+            const smallWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 - 1 , wallThickness, houseDepth / 4), floorMaterial);
+            smallWall.position.x = -(houseWidth / 2 - 20);
+            smallWall.position.y = floorHeight / 2;
+            smallWall.position.z = -(houseDepth / 2 - 5);
+            houseGroup.add(smallWall);
+            this.collidableObjects.push(smallWall);
+
+
+            //muro delle scale
+            const stairWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, floorHeight / 2, houseDepth / 2), floorMaterial);
+            stairWall.position.y = floorHeight / 2 + 5;
+            stairWall.position.x = -(houseWidth / 2 - 19);
+            stairWall.position.z = -(houseDepth / 2 - 10);
+            houseGroup.add(stairWall);
+            this.collidableObjects.push(stairWall);
+
+            //muro posteriore delle scale
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 - 19, floorHeight / 2, wallThickness), floorMaterial);
+            backWall.position.y = floorHeight / 2 + 5;
+            backWall.position.x = -(houseWidth / 2 - 22);
+            backWall.position.z = -(houseDepth / 2 - 10);
+            houseGroup.add(backWall);
+            this.collidableObjects.push(backWall);
+
+            // --- I due muri per creare le 4 stanze al primo piano ---
             const GroundWallHeight = floorHeight;
             const GroundWallYPosition = floorHeight;
 
@@ -468,15 +620,14 @@ export class GameWorld {
             createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
 
             // Muro orizzontale sopra porta
-            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
-
-            // Muro orizzontale sopra porta
             createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, 5, -GroundWallYPosition + 28, 0, specialWallMaterial);
 
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
+
             // Muro verticale (allineato all'asse Z)
-            createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMateriall);
-            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, -5, specialWallMateriall);
-            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 10, 0, GroundWallYPosition - 9, 5, specialWallMateriall);
+            createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMaterial);
+            createWall(wallThickness, GroundWallHeight / 4 - 1, houseDepth / 2 - 5, 0, GroundWallYPosition - 12, -12.5, specialWallMaterial);
 
 
 
@@ -485,18 +636,21 @@ export class GameWorld {
             const wallYPosition = floorHeight / 2 + 5;
 
             // Muro orizzontale (allineato all'asse X)
-            createWall(houseWidth / 2 + 17, wallHeight, wallThickness, 0, wallYPosition, 0, specialWallMaterial);
+            createWall(houseWidth / 3 - 0.5 , wallHeight, wallThickness, -13.5, wallYPosition, 0, specialWallMaterial);
+            createWall(houseWidth / 2 - 5 , wallHeight, wallThickness, 10, wallYPosition, 0, specialWallMaterial);
 
-            // Muro orizzontale sopra porta
-            createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
 
             // Muro orizzontale sopra porta
             createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
 
+            // Muro orizzontale sopra porta
+            createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
+
             // Muro verticale (allineato all'asse Z)
-            createWall(wallThickness, wallHeight, houseDepth / 2 + 12, 0, wallYPosition, 0, specialWallMateriall);
-            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMateriall);
-            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMaterial);
+            createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMaterial);
+            createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 15, 0, GroundWallYPosition - 9, -2.5, specialWallMaterial);
+
 
             this.scene.add(houseGroup);
             this.houses.push(houseGroup);
@@ -521,13 +675,18 @@ export class GameWorld {
             if (orientation === 'x') {
                 x = startPosition.x + (i * 2);
                 stair.rotation.y = Math.PI / 2; // Ruota di 90 gradi per allinearle all'asse X
-            } else { // 'z' di default
+            } else if (orientation === 'z') {
                 z = startPosition.z + (i * 2);
+            } else if (orientation === 'z-reversed') { // Nuovo orientamento per la direzione opposta
+                // Ho cambiato il segno da '+' a '-' per far salire la scala in direzione opposta
+                z = startPosition.z - (i * 2);
             }
+
 
             stair.position.set(x, y, z);
             parent.add(stair);
             this.collidableObjects.push(stair);
         }
     }
+
 }

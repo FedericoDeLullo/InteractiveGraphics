@@ -121,8 +121,21 @@ function init() {
         }
     };
 
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+
+        document.addEventListener('keydown', (event) => {
+    if (event.code === 'KeyX' && controls.isLocked) {
+        const playerPos = controls.getObject().position;
+        for (const chest of gameWorld.chests) {
+            const dist = chest.group.position.distanceTo(playerPos);
+            if (dist < 5 && !chest.isOpen) { // distanza più piccola per aprire
+                chest.open();
+                break;
+            }
+        }
+    }
+});
 
     animate();
 }
@@ -223,6 +236,23 @@ function animate() {
                 canJump = false;
             }
         }
+    }
+ const playerPos = controls.getObject().position;
+    let nearChest = false;
+    const interactMessage = document.getElementById('interactive-message');
+
+    for (const chest of gameWorld.chests) {
+        const dist = chest.group.position.distanceTo(playerPos);
+        if (dist < 5 && !chest.isOpen) { // distanza più ampia per messaggio
+            nearChest = true;
+            break;
+        }
+    }
+
+    if (nearChest && controls.isLocked) {
+        interactMessage.style.display = 'block';
+    } else {
+        interactMessage.style.display = 'none';
     }
 
     renderer.render(scene, camera);

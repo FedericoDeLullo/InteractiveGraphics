@@ -5,6 +5,7 @@ import { HouseA } from '../houses/HouseA.js';
 import { HouseB } from '../houses/HouseB.js';
 import { HouseC } from '../houses/HouseC.js';
 import { HouseD } from '../houses/HouseD.js';
+import { Chest } from './Chest.js';  // Assumendo sia nella stessa cartella
 
 export class GameWorld {
     constructor(scene) {
@@ -12,7 +13,11 @@ export class GameWorld {
         this.houses = [];
         this.trees = [];
         this.collidableObjects = [];
+        this.chests = [];
+
     }
+
+
 
     createHouses() {
         // Creazione delle strade
@@ -32,7 +37,7 @@ export class GameWorld {
         this.createTree(new THREE.Vector3(25, 0, 20), 5, 1, 10, 5);
 
         this.createGround();
-
+ this.createChests(5);
         // Istanziazione e creazione delle case
         const houseA = new HouseA(this.scene, this.collidableObjects);
         this.houses.push(houseA.create());
@@ -46,6 +51,18 @@ export class GameWorld {
         const houseD = new HouseD(this.scene, this.collidableObjects);
         this.houses.push(houseD.create());
     }
+
+        createChests(num) {
+                for(let i=0; i<num; i++) {
+                    // posizione casuale, evita strade o case con controllo semplice
+                    let posX = (Math.random() - 0.5) * 80;
+                    let posZ = (Math.random() - 0.5) * 80;
+                    let pos = new THREE.Vector3(posX, 0, posZ);
+
+                    const chest = new Chest(this.scene, pos, this.collidableObjects);
+                    this.chests.push(chest);
+                }
+            }
 
     createTree(position, trunkHeight, trunkRadius, foliageHeight, foliageRadius) {
         const treeGroup = new THREE.Group();

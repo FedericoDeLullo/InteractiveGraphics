@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 
-// Importa le classi di ogni casa, usando il percorso 'risali di una cartella'
+// Importa le classi di ogni casa
 import { HouseA } from '../houses/HouseA.js';
 import { HouseB } from '../houses/HouseB.js';
 import { HouseC } from '../houses/HouseC.js';
@@ -14,10 +14,37 @@ export class GameWorld {
         this.trees = [];
         this.collidableObjects = [];
         this.chests = [];
-
+         this.housePositions = {
+            houseA: [
+                new THREE.Vector3(-52, 10, -58.5),
+                new THREE.Vector3(-58, 0, -58.5),
+                new THREE.Vector3(-62, 0, -58.5),
+                new THREE.Vector3(-62, 10, -58.5),
+                new THREE.Vector3(-62, 0, -39),
+            ],
+            houseB: [
+                new THREE.Vector3(52, 10, -58.5),
+                new THREE.Vector3(58, 0, -58.5),
+                new THREE.Vector3(62, 0, -58.5),
+                new THREE.Vector3(62, 10, -58.5),
+                new THREE.Vector3(62, 0, -39),
+            ],
+            houseC: [
+                new THREE.Vector3(-52, 10, 58.5),
+                new THREE.Vector3(-58, 0, 58.5),
+                new THREE.Vector3(-62, 0, 58.5),
+                new THREE.Vector3(-62, 10, 58.5),
+                new THREE.Vector3(-62, 0, 39),
+            ],
+            houseD: [
+                new THREE.Vector3(52, 10, 58.5),
+                new THREE.Vector3(58, 0, 58.5),
+                new THREE.Vector3(62, 0, 58.5),
+                new THREE.Vector3(62, 10, 58.5),
+                new THREE.Vector3(62, 0, 39),
+            ]
+        };
     }
-
-
 
     createHouses() {
         // Creazione delle strade
@@ -37,8 +64,9 @@ export class GameWorld {
         this.createTree(new THREE.Vector3(25, 0, 20), 5, 1, 10, 5);
 
         this.createGround();
- this.createChests(5);
-        // Istanziazione e creazione delle case
+      
+
+        // Istanzia case e aggiungile
         const houseA = new HouseA(this.scene, this.collidableObjects);
         this.houses.push(houseA.create());
 
@@ -50,19 +78,28 @@ export class GameWorld {
 
         const houseD = new HouseD(this.scene, this.collidableObjects);
         this.houses.push(houseD.create());
+
+        // Genera chest dentro le case
+        this.createChestsInHouse(this.housePositions.houseA, 2);
+        this.createChestsInHouse(this.housePositions.houseB, 2);
+        this.createChestsInHouse(this.housePositions.houseC, 2);
+        this.createChestsInHouse(this.housePositions.houseD, 2);
     }
 
-        createChests(num) {
-                for(let i=0; i<num; i++) {
-                    // posizione casuale, evita strade o case con controllo semplice
-                    let posX = (Math.random() - 0.5) * 80;
-                    let posZ = (Math.random() - 0.5) * 80;
-                    let pos = new THREE.Vector3(posX, 0, posZ);
+        createChestsInHouse(positionArray, numChests) {
+                const availablePositions = [...positionArray]; // copia array
+
+                for(let i = 0; i < numChests; i++) {
+                    if(availablePositions.length === 0) break;
+
+                    const index = Math.floor(Math.random() * availablePositions.length);
+                    const pos = availablePositions.splice(index, 1)[0];
 
                     const chest = new Chest(this.scene, pos, this.collidableObjects);
                     this.chests.push(chest);
                 }
             }
+
 
     createTree(position, trunkHeight, trunkRadius, foliageHeight, foliageRadius) {
         const treeGroup = new THREE.Group();

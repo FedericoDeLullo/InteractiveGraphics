@@ -11,7 +11,7 @@ let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
-let isFlying = false; // Nuovo stato per il volo
+let isFlying = false;
 let canJump = false;
 
 const velocity = new THREE.Vector3();
@@ -121,21 +121,21 @@ function init() {
         }
     };
 
-            document.addEventListener('keydown', onKeyDown);
-            document.addEventListener('keyup', onKeyUp);
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
 
-        document.addEventListener('keydown', (event) => {
-    if (event.code === 'KeyX' && controls.isLocked) {
-        const playerPos = controls.getObject().position;
-        for (const chest of gameWorld.chests) {
-            const dist = chest.group.position.distanceTo(playerPos);
-            if (dist < 5 && !chest.isOpen) { // distanza più piccola per aprire
-                chest.open();
-                break;
+    document.addEventListener('keydown', (event) => {
+        if (event.code === 'KeyX' && controls.isLocked) {
+            const playerPos = controls.getObject().position;
+            for (const chest of gameWorld.chests) {
+                const dist = chest.group.position.distanceTo(playerPos);
+                if (dist < 5 && !chest.isOpen) {
+                    chest.open();
+                    break;
+                }
             }
         }
-    }
-});
+    });
 
     animate();
 }
@@ -148,32 +148,28 @@ function animate() {
     if (controls.isLocked) {
         const acceleration = 500.0;
         const drag = 20.0;
-        const flySpeed = 25.0; // Velocità di volo
-        const playerHeight = 1.7; // Altezza del personaggio
+        const flySpeed = 25.0;
+        const playerHeight = 1.7;
 
         velocity.x -= velocity.x * drag * delta;
         velocity.z -= velocity.z * drag * delta;
 
-        // Se il volo è attivo, annulla la gravità e gestisci il movimento verticale
         if (isFlying) {
             velocity.y = 0;
             if (moveForward || moveBackward) {
-                // Movimento verticale con le frecce su/giù in modalità volo
                 const directionY = Number(moveForward) - Number(moveBackward);
                 velocity.y = directionY * flySpeed;
             } else {
                 velocity.y = 0;
             }
         } else {
-            velocity.y -= 9.8 * 10.0 * delta; // Gravità normale
+            velocity.y -= 9.8 * 10.0 * delta;
         }
 
-        // Movimento orizzontale
         direction.z = Number(moveForward) - Number(moveBackward);
         direction.x = Number(moveRight) - Number(moveLeft);
         direction.normalize();
 
-        // Controllo collisioni (solo se non si sta volando)
         if (!isFlying) {
             if (moveForward || moveBackward) {
                 const movementVector = new THREE.Vector3();
@@ -209,7 +205,6 @@ function animate() {
                 }
             }
         } else {
-            // Se si vola, applica la velocità orizzontale senza collisioni
             if (direction.x !== 0) velocity.x = -direction.x * flySpeed;
             if (direction.z !== 0) velocity.z = -direction.z * flySpeed;
         }
@@ -218,7 +213,6 @@ function animate() {
         controls.moveForward(-velocity.z * delta);
         controls.getObject().position.y += velocity.y * delta;
 
-        // Collisione con il suolo e le scale (solo se non si sta volando)
         if (!isFlying) {
             const downwardRaycaster = new THREE.Raycaster(controls.getObject().position, new THREE.Vector3(0, -1, 0), 0, playerHeight);
             const groundIntersects = downwardRaycaster.intersectObjects(gameWorld.collidableObjects, true);
@@ -237,13 +231,14 @@ function animate() {
             }
         }
     }
- const playerPos = controls.getObject().position;
+
+    const playerPos = controls.getObject().position;
     let nearChest = false;
     const interactMessage = document.getElementById('interactive-message');
 
     for (const chest of gameWorld.chests) {
         const dist = chest.group.position.distanceTo(playerPos);
-        if (dist < 5 && !chest.isOpen) { // distanza più ampia per messaggio
+        if (dist < 5 && !chest.isOpen) {
             nearChest = true;
             break;
         }

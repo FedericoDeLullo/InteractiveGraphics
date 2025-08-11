@@ -48,33 +48,24 @@ export class Chest {
 
         scene.add(this.group);
 
-        // --- INIZIO NUOVO CODICE ---
-        // Definisci i possibili colori per le armi
         this.weaponColors = [
-            new THREE.Color(0xff0000), // Rosso
-            new THREE.Color(0x00ff00), // Verde
-            new THREE.Color(0x0000ff)  // Blu
+            new THREE.Color(0xff0000),
+            new THREE.Color(0x00ff00),
+            new THREE.Color(0x0000ff)
         ];
 
-        // Crea i 3 cubi per l'animazione, inizialmente invisibili
         this.spinCubes = [];
         for (let i = 0; i < 3; i++) {
             const cubeGeom = new THREE.BoxGeometry(0.8, 0.8, 0.8);
             const cubeMat = new THREE.MeshStandardMaterial({ color: this.weaponColors[i] });
             const cube = new THREE.Mesh(cubeGeom, cubeMat);
-            cube.position.set(-1.5 + i * 1.5, height + thickness + 0.5, 0); // Posizionali uno accanto all'altro
+            cube.position.set(-1.5 + i * 1.5, height + thickness + 0.5, 0);
             cube.visible = false;
             this.group.add(cube);
             this.spinCubes.push(cube);
         }
 
-        // Il cubo finale, inizialmente invisibile
-        const finalCubeGeom = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-        this.finalCube = new THREE.Mesh(finalCubeGeom, new THREE.MeshStandardMaterial());
-        this.finalCube.position.set(0, height + thickness + 0.5, 0);
-        this.finalCube.visible = false;
-        this.group.add(this.finalCube);
-        // --- FINE NUOVO CODICE ---
+        this.collectibleItem = null;
 
         this.collisionMeshes = [this.front, this.back, this.left, this.right, this.bottom];
 
@@ -85,7 +76,7 @@ export class Chest {
         this.audio = new Audio('sounds/chest-open.mp3');
     }
 
-    open() {
+    open(onAnimationComplete) {
         if (this.isOpen) return;
 
         this.isOpen = true;
@@ -104,47 +95,53 @@ export class Chest {
             } else {
                 this.lid.position.y = targetY;
                 this.lid.visible = false;
-                // Inizia l'animazione dei cubi dopo che il coperchio è scomparso
-                this.startSpinAnimation();
+                this.startSpinAnimation(onAnimationComplete);
             }
         };
 
         requestAnimationFrame(animateOpen);
     }
 
-    // --- INIZIO NUOVA FUNZIONE ---
-    startSpinAnimation() {
-        const spinDuration = 3; // 5 secondi
+    startSpinAnimation(onAnimationComplete) {
+        const spinDuration = 3; // Durata dello spin in secondi
         const spinStartTime = performance.now();
-        const spinSpeed = 0.1; // Velocità di rotazione
+        const spinSpeed = 0.1;
 
-        // Scegli un colore finale a caso
-        const finalColor = this.weaponColors[Math.floor(Math.random() * this.weaponColors.length)];
-
-        // Rendi visibili i cubi rotanti
         this.spinCubes.forEach(cube => cube.visible = true);
 
         const animateSpin = (time) => {
             const elapsed = (time - spinStartTime) / 1000;
 
             if (elapsed < spinDuration) {
-                // Fai ruotare i cubi e cambiane il colore in modo casuale
                 this.spinCubes.forEach(cube => {
                     cube.rotation.y += spinSpeed;
                     cube.material.color.set(this.weaponColors[Math.floor(Math.random() * this.weaponColors.length)]);
                 });
                 requestAnimationFrame(animateSpin);
             } else {
-                // Al termine dell'animazione, rendi invisibili i cubi rotanti
-                this.spinCubes.forEach(cube => cube.visible = false);
+                const winningCubeIndex = Math.floor(Math.random() * this.spinCubes.length);
+                const winningCube = this.spinCubes[winningCubeIndex];
 
-                // Rendi visibile il cubo finale e assegnagli il colore scelto
-                this.finalCube.material.color.set(finalColor);
-                this.finalCube.visible = true;
+                this.spinCubes.forEach((cube, index) => {
+                    if (index !== winningCubeIndex) {
+                        this.group.remove(cube);
+                    }
+                });
+
+                // Rimuove il cubo vincitore dal gruppo della cassa e lo posiziona direttamente nella scena
+                this.group.remove(winningCube);
+                this.scene.add(winningCube);
+
+                this.collectibleItem = winningCube;
+                this.collectibleItem.position.copy(this.group.position);
+                this.collectibleItem.position.y += 2;
+
+                if (onAnimationComplete) {
+                    onAnimationComplete(this.collectibleItem);
+                }
             }
         };
 
         requestAnimationFrame(animateSpin);
     }
-    // --- FINE NUOVA FUNZIONE ---
 }

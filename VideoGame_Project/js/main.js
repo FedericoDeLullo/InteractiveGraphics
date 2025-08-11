@@ -1,11 +1,13 @@
 // main.js
-import * as THREE from 'https://unpkg.com/three@0.126.0/build/three.module.js';
-import { PointerLockControls } from 'https://unpkg.com/three@0.126.0/examples/jsm/controls/PointerLockControls.js';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
+import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.126.0/examples/jsm/controls/PointerLockControls.js';
 import { GameWorld } from './GameWorld.js';
+import { Inventory } from './Inventory.js';
 
 let scene, camera, renderer;
 let controls;
 let gameWorld;
+let inventory;
 
 let moveForward = false;
 let moveBackward = false;
@@ -13,18 +15,24 @@ let moveLeft = false;
 let moveRight = false;
 let isFlying = false;
 let canJump = false;
+let isCollecting = false;
+
+// Nuova variabile per lo stato dell'inventario
+let isInventoryOpen = false;
 
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const raycaster = new THREE.Raycaster();
 const clock = new THREE.Clock();
 
+const playerSize = 2;
+
 function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xcce0ff);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.y = 1.7;
+    camera.position.y = playerSize / 2;
     camera.position.z = 5;
 
     renderer = new THREE.WebGLRenderer();
@@ -42,6 +50,9 @@ function init() {
     gameWorld = new GameWorld(scene);
     gameWorld.createHouses();
 
+    // Passiamo l'ID dell'elemento HTML al costruttore
+    inventory = new Inventory('inventory-items');
+
     controls = new PointerLockControls(camera, document.body);
 
     const blocker = document.getElementById('blocker');
@@ -58,8 +69,10 @@ function init() {
         });
 
         controls.addEventListener('unlock', () => {
-            blocker.style.display = 'block';
-            instructions.style.display = '';
+            if (!isInventoryOpen) {
+                blocker.style.display = 'flex';
+                instructions.style.display = '';
+            }
         });
     }
 
@@ -93,6 +106,21 @@ function init() {
             case 'ShiftRight':
                 isFlying = true;
                 break;
+            case 'KeyE':
+                isCollecting = true;
+                break;
+            case 'KeyI':
+                if (controls.isLocked) {
+                    controls.unlock();
+                    isInventoryOpen = true;
+                    document.getElementById('inventory-container').style.display = 'block';
+                    inventory.render();
+                } else if (isInventoryOpen) {
+                    controls.lock();
+                    isInventoryOpen = false;
+                    document.getElementById('inventory-container').style.display = 'none';
+                }
+                break;
         }
     };
 
@@ -118,6 +146,9 @@ function init() {
             case 'ShiftRight':
                 isFlying = false;
                 break;
+            case 'KeyE':
+                isCollecting = false;
+                break;
         }
     };
 
@@ -129,8 +160,12 @@ function init() {
             const playerPos = controls.getObject().position;
             for (const chest of gameWorld.chests) {
                 const dist = chest.group.position.distanceTo(playerPos);
-                if (dist < 5 && !chest.isOpen) {
-                    chest.open();
+                if (dist < 6 && !chest.isOpen) {
+                    chest.open((item) => {
+                        if (item) {
+                            gameWorld.collectibleItems.push(item);
+                        }
+                    });
                     break;
                 }
             }
@@ -145,11 +180,12 @@ function animate() {
 
     const delta = clock.getDelta();
 
-    if (controls.isLocked) {
+    // La logica di movimento e fisica viene eseguita solo se l'inventario è chiuso
+    if (controls.isLocked && !isInventoryOpen) {
         const acceleration = 500.0;
         const drag = 20.0;
         const flySpeed = 25.0;
-        const playerHeight = 1.7;
+        const playerHeight = playerSize;
 
         velocity.x -= velocity.x * drag * delta;
         velocity.z -= velocity.z * drag * delta;
@@ -233,22 +269,64 @@ function animate() {
     }
 
     const playerPos = controls.getObject().position;
-    let nearChest = false;
     const interactMessage = document.getElementById('interactive-message');
+    const collectMessage = document.getElementById('collect-message');
 
+    let nearChest = false;
+    let nearCollectible = false;
+    let collectibleToCollect = null;
+
+    // Controlla la vicinanza ai forzieri
     for (const chest of gameWorld.chests) {
         const dist = chest.group.position.distanceTo(playerPos);
-        if (dist < 5 && !chest.isOpen) {
+        if (dist < 6 && !chest.isOpen) {
             nearChest = true;
             break;
         }
     }
 
-    if (nearChest && controls.isLocked) {
-        interactMessage.style.display = 'block';
-    } else {
-        interactMessage.style.display = 'none';
+    // Controlla la vicinanza agli oggetti collezionabili
+    for (const item of gameWorld.collectibleItems) {
+        const dist = item.position.distanceTo(playerPos);
+        if (dist < 6) {
+            nearCollectible = true;
+            collectibleToCollect = item;
+            break;
+        }
     }
+
+    // Gestione dei messaggi a schermo
+    if (interactMessage) {
+        if (nearChest && controls.isLocked) {
+            interactMessage.style.display = 'block';
+        } else {
+            interactMessage.style.display = 'none';
+        }
+    }
+
+    if (collectMessage) {
+    if (nearCollectible && controls.isLocked) {
+        collectMessage.style.display = 'block';
+        if (isCollecting) {
+            inventory.addItem(collectibleToCollect);
+            gameWorld.scene.remove(collectibleToCollect);
+            gameWorld.collectibleItems = gameWorld.collectibleItems.filter(item => item !== collectibleToCollect);
+            isCollecting = false;
+            collectMessage.style.display = 'none';
+
+            // Mostra la notifica per 2 secondi
+            const notification = document.getElementById('notification-message');
+            if (notification) {
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 2000); // 2000 millisecondi = 2 secondi
+            }
+        }
+    } else {
+        collectMessage.style.display = 'none';
+    }
+}
 
     renderer.render(scene, camera);
 }

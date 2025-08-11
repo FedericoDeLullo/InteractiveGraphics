@@ -14,6 +14,7 @@ export class GameWorld {
         this.trees = [];
         this.collidableObjects = [];
         this.chests = [];
+        this.collectibleItems = []; // Array per tenere traccia degli oggetti collezionabili
         this.housePositions = {
             houseA: [
                 new THREE.Vector3(-50.5, 10.2, -58),
@@ -75,7 +76,8 @@ export class GameWorld {
         const houseD = new HouseD(this.scene, this.collidableObjects);
         this.houses.push(houseD.create());
 
-        this.createChestsInHouse(this.housePositions.houseA, 5);
+        // Passa l'array di oggetti collezionabili alla funzione per la creazione dei forzieri
+        this.createChestsInHouse(this.housePositions.houseA, 2);
         this.createChestsInHouse(this.housePositions.houseB, 2);
         this.createChestsInHouse(this.housePositions.houseC, 2);
         this.createChestsInHouse(this.housePositions.houseD, 2);
@@ -90,7 +92,8 @@ export class GameWorld {
             const index = Math.floor(Math.random() * availablePositions.length);
             const pos = availablePositions.splice(index, 1)[0];
 
-            const chest = new Chest(this.scene, pos, this.collidableObjects);
+            // Passa l'array di oggetti collezionabili al costruttore della Chest
+            const chest = new Chest(this.scene, pos, this.collidableObjects, this.collectibleItems);
             this.chests.push(chest);
         }
     }

@@ -9,7 +9,7 @@ import { Chest } from './Chest.js';
 import { Enemy } from './Enemy.js';
 
 export class GameWorld {
-    constructor(scene, healthBarContainer) { // Passiamo il container qui
+    constructor(scene, healthBarContainer, weaponModels) {
         this.scene = scene;
         this.houses = [];
         this.trees = [];
@@ -17,7 +17,8 @@ export class GameWorld {
         this.chests = [];
         this.collectibleItems = [];
         this.enemies = [];
-        this.healthBarContainer = healthBarContainer; // Salviamo il riferimento
+        this.healthBarContainer = healthBarContainer;
+        this.weaponModels = weaponModels;
         this.housePositions = {
             houseA: [
                 new THREE.Vector3(-50.5, 10.2, -58),
@@ -82,7 +83,6 @@ export class GameWorld {
         const houseD = new HouseD(this.scene, this.collidableObjects);
         this.houses.push(houseD.create());
 
-        // Passa l'array di oggetti collezionabili alla funzione per la creazione dei forzieri
         this.createChestsInHouse(this.housePositions.houseA, 2);
         this.createChestsInHouse(this.housePositions.houseB, 2);
         this.createChestsInHouse(this.housePositions.houseC, 2);
@@ -98,8 +98,7 @@ export class GameWorld {
             const index = Math.floor(Math.random() * availablePositions.length);
             const pos = availablePositions.splice(index, 1)[0];
 
-            // Passa l'array di oggetti collezionabili al costruttore della Chest
-            const chest = new Chest(this.scene, pos, this.collidableObjects, this.collectibleItems);
+            const chest = new Chest(this.scene, pos, this.collidableObjects, this.collectibleItems, this.weaponModels);
             this.chests.push(chest);
         }
     }

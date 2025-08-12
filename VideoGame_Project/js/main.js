@@ -3,12 +3,14 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.m
 import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.126.0/examples/jsm/controls/PointerLockControls.js';
 import { GameWorld } from './GameWorld.js';
 import { Inventory } from './Inventory.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.126.0/examples/jsm/loaders/GLTFLoader.js';
 
 let scene, camera, renderer;
 let controls;
 let gameWorld;
 let inventory;
 let healthBarContainer;
+let weaponModels = [];
 
 let moveForward = false;
 let moveBackward = false;
@@ -18,6 +20,7 @@ let isFlying = false;
 let canJump = false;
 let isCollecting = false;
 let isInventoryOpen = false;
+let isOpeningChest = false;
 
 let isAttacking = false;
 const attackCooldown = 0.5;
@@ -30,11 +33,41 @@ const clock = new THREE.Clock();
 
 const playerSize = 2;
 
-// Rendiamo l'arma attuale un oggetto che può essere modificato
 let currentWeapon = {
     damage: 5,
-    range: 15
+    range: 15,
+    name: 'Pugno'
 };
+
+function loadModels() {
+    const loader = new GLTFLoader();
+    const weaponPaths = [
+        // Aggiunto il fattore di scala per ogni modello
+        { path: 'models/pistol.glb', stats: { damage: 10, range: 20, name: 'Pistola', scale: 0.5 } },
+        { path: 'models/rifle.glb', stats: { damage: 20, range: 40, name: 'Fucile', scale: 1.5} },
+        { path: 'models/rocketLauncher.glb', stats: { damage: 50, range: 60, name: 'Lanciarazzi', scale: 0.2 } }
+    ];
+
+    let loadedCount = 0;
+    weaponPaths.forEach(weapon => {
+        loader.load(weapon.path, (gltf) => {
+            const model = gltf.scene;
+            model.damage = weapon.stats.damage;
+            model.range = weapon.stats.range;
+            model.name = weapon.stats.name;
+            model.scale.set(weapon.stats.scale, weapon.stats.scale, weapon.stats.scale); // Applica la scala
+            weaponModels.push(model);
+            loadedCount++;
+
+            if (loadedCount === weaponPaths.length) {
+                console.log("Tutti i modelli delle armi sono stati caricati.");
+                init();
+            }
+        }, undefined, (error) => {
+            console.error(`Errore nel caricamento del modello ${weapon.path}:`, error);
+        });
+    });
+}
 
 function init() {
     scene = new THREE.Scene();
@@ -57,8 +90,7 @@ function init() {
     scene.add(dirLight);
 
     healthBarContainer = document.getElementById('health-bar-container');
-    gameWorld = new GameWorld(scene, healthBarContainer);
-    gameWorld.createHouses();
+    gameWorld = new GameWorld(scene, healthBarContainer, weaponModels);
 
     inventory = new Inventory('inventory-items');
 
@@ -176,11 +208,13 @@ function init() {
             const playerPos = controls.getObject().position;
             for (const chest of gameWorld.chests) {
                 const dist = chest.group.position.distanceTo(playerPos);
-                if (dist < 5 && !chest.isOpen) {
+                if (dist < 6 && !chest.isOpen) {
+                    isOpeningChest = true;
                     chest.open((item) => {
                         if (item) {
                             gameWorld.collectibleItems.push(item);
                         }
+                        isOpeningChest = false;
                     });
                     break;
                 }
@@ -198,7 +232,6 @@ function animate() {
     const elapsedTime = clock.getElapsedTime();
 
     if (controls.isLocked && !isInventoryOpen) {
-        // ... (Logica di movimento e fisica invariata) ...
         const acceleration = 500.0;
         const drag = 20.0;
         const flySpeed = 25.0;
@@ -207,7 +240,9 @@ function animate() {
         velocity.x -= velocity.x * drag * delta;
         velocity.z -= velocity.z * drag * delta;
 
-        if (isFlying) {
+        if (isOpeningChest) {
+            velocity.y = 0;
+        } else if (isFlying) {
             velocity.y = 0;
             if (moveForward || moveBackward) {
                 const directionY = Number(moveForward) - Number(moveBackward);
@@ -266,7 +301,7 @@ function animate() {
         controls.moveForward(-velocity.z * delta);
         controls.getObject().position.y += velocity.y * delta;
 
-        if (!isFlying) {
+        if (!isFlying && !isOpeningChest) {
             const downwardRaycaster = new THREE.Raycaster(controls.getObject().position, new THREE.Vector3(0, -1, 0), 0, playerHeight);
             const groundIntersects = downwardRaycaster.intersectObjects(gameWorld.collidableObjects, true);
 
@@ -284,7 +319,6 @@ function animate() {
             }
         }
 
-        // Logica di attacco
         if (isAttacking && elapsedTime - lastAttackTime > attackCooldown) {
             const raycaster = new THREE.Raycaster();
             const cameraDirection = new THREE.Vector3();
@@ -314,7 +348,6 @@ function animate() {
             isAttacking = false;
         }
 
-        // Aggiorna le barre della vita dei nemici
         gameWorld.enemies.forEach(enemy => {
             if (enemy.isAlive) {
                 enemy.updateHealthBar(camera, renderer);
@@ -333,7 +366,7 @@ function animate() {
 
     for (const chest of gameWorld.chests) {
         const dist = chest.group.position.distanceTo(playerPos);
-        if (dist < 5 && !chest.isOpen) {
+        if (dist < 6 && !chest.isOpen) {
             nearChest = true;
             break;
         }
@@ -341,7 +374,7 @@ function animate() {
 
     for (const item of gameWorld.collectibleItems) {
         const dist = item.position.distanceTo(playerPos);
-        if (dist < 2) {
+        if (dist < 6) {
             nearCollectible = true;
             collectibleToCollect = item;
             break;
@@ -360,7 +393,6 @@ function animate() {
         if (nearCollectible && controls.isLocked) {
             collectMessage.style.display = 'block';
             if (isCollecting) {
-                // Controlla se l'oggetto raccolto è un'arma
                 if (collectibleToCollect.damage !== undefined && collectibleToCollect.range !== undefined) {
                     currentWeapon.damage = collectibleToCollect.damage;
                     currentWeapon.range = collectibleToCollect.range;
@@ -393,4 +425,4 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-init();
+loadModels();

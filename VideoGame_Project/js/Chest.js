@@ -2,11 +2,12 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 
 export class Chest {
-    constructor(scene, position = new THREE.Vector3(0, 0, 0), collidableObjects = null) {
+    constructor(scene, position = new THREE.Vector3(0, 0, 0), collidableObjects = null, collectibleItems = null, weaponModels = []) {
         this.scene = scene;
         this.isOpen = false;
         this.group = new THREE.Group();
         this.group.position.copy(position);
+        this.weaponModels = weaponModels;
 
         const width = 6;
         const height = 1.5;
@@ -48,22 +49,27 @@ export class Chest {
 
         scene.add(this.group);
 
-        this.weaponColors = [
-            new THREE.Color(0xff0000),
-            new THREE.Color(0x00ff00),
-            new THREE.Color(0x0000ff)
-        ];
+        this.spinWeapons = [];
+        this.weaponModels.forEach((model, i) => {
+            // Crea un THREE.Group per ogni arma per risolvere il problema della rotazione.
+            // Il modello importato potrebbe non avere il suo punto di origine al centro.
+            // Ruotando questo contenitore, ci assicuriamo che la rotazione sia corretta.
+            const weaponContainer = new THREE.Group();
+            const spinWeapon = model.clone();
+            weaponContainer.add(spinWeapon);
 
-        this.spinCubes = [];
-        for (let i = 0; i < 3; i++) {
-            const cubeGeom = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-            const cubeMat = new THREE.MeshStandardMaterial({ color: this.weaponColors[i] });
-            const cube = new THREE.Mesh(cubeGeom, cubeMat);
-            cube.position.set(-1.5 + i * 1.5, height + thickness + 0.5, 0);
-            cube.visible = false;
-            this.group.add(cube);
-            this.spinCubes.push(cube);
-        }
+            // Posiziona le armi con un'intervallo più ampio per una migliore visualizzazione
+            // La formula 0 + (i - 1) * 2 centra l'arma con indice 1.
+            const spacing = 2; // Spaziatura tra le armi
+            weaponContainer.position.set(0 + (i - 1) * spacing, height + thickness + 0.5, 0);
+
+            // La scala è già impostata correttamente nel file main.js,
+            // quindi non serve ridefinirla qui. Il clone eredita la scala.
+
+            weaponContainer.visible = false;
+            this.group.add(weaponContainer);
+            this.spinWeapons.push(weaponContainer); // L'array ora contiene i contenitori
+        });
 
         this.collectibleItem = null;
 
@@ -107,38 +113,41 @@ export class Chest {
         const spinStartTime = performance.now();
         const spinSpeed = 0.1;
 
-        this.spinCubes.forEach(cube => cube.visible = true);
+        this.spinWeapons.forEach(weaponContainer => weaponContainer.visible = true);
 
         const animateSpin = (time) => {
             const elapsed = (time - spinStartTime) / 1000;
 
             if (elapsed < spinDuration) {
-                this.spinCubes.forEach(cube => {
-                    cube.rotation.y += spinSpeed;
-                    cube.material.color.set(this.weaponColors[Math.floor(Math.random() * this.weaponColors.length)]);
+                this.spinWeapons.forEach(weaponContainer => {
+                    // Ora ruotiamo il contenitore (il gruppo), che ruoterà l'arma al suo interno.
+                    weaponContainer.rotation.y += spinSpeed;
                 });
                 requestAnimationFrame(animateSpin);
             } else {
-                const winningCubeIndex = Math.floor(Math.random() * this.spinCubes.length);
-                const winningCube = this.spinCubes[winningCubeIndex];
+                const winningIndex = Math.floor(Math.random() * this.spinWeapons.length);
+                const winningWeaponContainer = this.spinWeapons[winningIndex];
+                const winningWeapon = winningWeaponContainer.children[0];
 
-                // Aggiungiamo le statistiche di danno e portata all'oggetto
-                winningCube.damage = Math.floor(Math.random() * 10) + 5;
-                winningCube.range = Math.floor(Math.random() * 10) + 10;
-                console.log(`L'arma creata ha un danno di: ${winningCube.damage} e una portata di: ${winningCube.range}`);
-
-                this.spinCubes.forEach((cube, index) => {
-                    if (index !== winningCubeIndex) {
-                        this.group.remove(cube);
+                this.spinWeapons.forEach((weaponContainer, index) => {
+                    if (index !== winningIndex) {
+                        this.group.remove(weaponContainer);
                     }
                 });
 
-                this.group.remove(winningCube);
-                this.scene.add(winningCube);
+                const worldPosition = new THREE.Vector3();
+                winningWeaponContainer.getWorldPosition(worldPosition);
+                this.group.remove(winningWeaponContainer);
 
-                this.collectibleItem = winningCube;
-                this.collectibleItem.position.copy(this.group.position);
-                this.collectibleItem.position.y += 2;
+                this.scene.add(winningWeapon);
+                winningWeapon.position.copy(worldPosition);
+
+                this.collectibleItem = winningWeapon;
+
+                // Non è necessario impostare di nuovo la scala qui. Il modello mantiene
+                // la sua scala corretta dal file main.js.
+
+                console.log(`L'arma creata ha un danno di: ${this.collectibleItem.damage} e una portata di: ${this.collectibleItem.range}`);
 
                 if (onAnimationComplete) {
                     onAnimationComplete(this.collectibleItem);

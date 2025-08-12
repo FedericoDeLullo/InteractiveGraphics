@@ -1,4 +1,3 @@
-// Chest.js
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 
 export class Chest {
@@ -51,24 +50,21 @@ export class Chest {
 
         this.spinWeapons = [];
         this.weaponModels.forEach((model, i) => {
-            // Crea un THREE.Group per ogni arma per risolvere il problema della rotazione.
-            // Il modello importato potrebbe non avere il suo punto di origine al centro.
-            // Ruotando questo contenitore, ci assicuriamo che la rotazione sia corretta.
             const weaponContainer = new THREE.Group();
             const spinWeapon = model.clone();
+
+            spinWeapon.damage = model.damage;
+            spinWeapon.range = model.range;
+            spinWeapon.name = model.name;
+
             weaponContainer.add(spinWeapon);
 
-            // Posiziona le armi con un'intervallo più ampio per una migliore visualizzazione
-            // La formula 0 + (i - 1) * 2 centra l'arma con indice 1.
-            const spacing = 2; // Spaziatura tra le armi
+            const spacing = 2;
             weaponContainer.position.set(0 + (i - 1) * spacing, height + thickness + 0.5, 0);
-
-            // La scala è già impostata correttamente nel file main.js,
-            // quindi non serve ridefinirla qui. Il clone eredita la scala.
 
             weaponContainer.visible = false;
             this.group.add(weaponContainer);
-            this.spinWeapons.push(weaponContainer); // L'array ora contiene i contenitori
+            this.spinWeapons.push(weaponContainer);
         });
 
         this.collectibleItem = null;
@@ -84,7 +80,6 @@ export class Chest {
 
     open(onAnimationComplete) {
         if (this.isOpen) return;
-
         this.isOpen = true;
         this.audio.play();
 
@@ -104,7 +99,6 @@ export class Chest {
                 this.startSpinAnimation(onAnimationComplete);
             }
         };
-
         requestAnimationFrame(animateOpen);
     }
 
@@ -117,10 +111,8 @@ export class Chest {
 
         const animateSpin = (time) => {
             const elapsed = (time - spinStartTime) / 1000;
-
             if (elapsed < spinDuration) {
                 this.spinWeapons.forEach(weaponContainer => {
-                    // Ora ruotiamo il contenitore (il gruppo), che ruoterà l'arma al suo interno.
                     weaponContainer.rotation.y += spinSpeed;
                 });
                 requestAnimationFrame(animateSpin);
@@ -144,9 +136,6 @@ export class Chest {
 
                 this.collectibleItem = winningWeapon;
 
-                // Non è necessario impostare di nuovo la scala qui. Il modello mantiene
-                // la sua scala corretta dal file main.js.
-
                 console.log(`L'arma creata ha un danno di: ${this.collectibleItem.damage} e una portata di: ${this.collectibleItem.range}`);
 
                 if (onAnimationComplete) {
@@ -154,7 +143,6 @@ export class Chest {
                 }
             }
         };
-
         requestAnimationFrame(animateSpin);
     }
 }

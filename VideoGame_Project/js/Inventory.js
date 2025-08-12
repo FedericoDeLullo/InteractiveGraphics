@@ -1,34 +1,53 @@
 // Inventory.js
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 
-// Classe per gestire la singola "vetrina" 3D di un oggetto
 class InventoryItem {
     constructor(itemData, container) {
         this.container = container;
         this.itemData = itemData;
 
-        // Creazione della mini-scena per l'oggetto
         const width = 100;
         const height = 100;
+
+        // Inizializza la scena, la telecamera e il renderer per ogni mini-modello
         this.scene = new THREE.Scene();
+
+        // Imposta lo sfondo della scena su null per renderlo trasparente
+        this.scene.background = null;
+
         this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 10);
         this.camera.position.z = 1.5;
 
-        // Aggiungi luce alla mini-scena
+        // Aggiungi luci per rendere l'oggetto visibile
         const light = new THREE.PointLight(0xffffff, 1, 100);
         light.position.set(0, 0, 5);
         this.scene.add(light);
         this.scene.add(new THREE.AmbientLight(0x404040));
 
-        // Crea il renderer per il canvas
+        // Imposta 'alpha: true' nel renderer per abilitare la trasparenza
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         this.renderer.setSize(width, height);
         this.container.appendChild(this.renderer.domElement);
 
-        // Clona il materiale e la geometria dell'oggetto originale per la visualizzazione
-        const geometry = itemData.geometry.clone();
-        const material = itemData.material.clone();
-        this.mesh = new THREE.Mesh(geometry, material);
+        const displayObject = itemData.model.clone();
+
+        const box = new THREE.Box3().setFromObject(displayObject);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+
+        console.log(`Modello ${itemData.name} - Dimensioni bounding box:`, size);
+
+        displayObject.position.x += (displayObject.position.x - center.x);
+        displayObject.position.y += (displayObject.position.y - center.y);
+        displayObject.position.z += (displayObject.position.z - center.z);
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = this.camera.fov * (Math.PI / 180);
+        const cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+
+        this.camera.position.z = cameraZ * 1.2;
+
+        this.mesh = displayObject;
         this.scene.add(this.mesh);
     }
 
@@ -40,18 +59,17 @@ class InventoryItem {
     }
 }
 
-// Classe principale dell'inventario
 export class Inventory {
     constructor(elementId) {
         this.items = [];
-        this.itemInstances = []; // Array per le istanze di InventoryItem
+        this.itemInstances = [];
         this.container = document.getElementById(elementId);
     }
 
     addItem(item) {
         this.items.push(item);
         console.log("Oggetto aggiunto all'inventario:", item);
-        this.render(); // Aggiorna la visualizzazione
+        this.render();
     }
 
     removeItem(item) {
@@ -59,14 +77,14 @@ export class Inventory {
         if (index > -1) {
             this.items.splice(index, 1);
             console.log("Oggetto rimosso dall'inventario:", item);
-            this.render(); // Aggiorna la visualizzazione
+            this.render();
         }
     }
 
-    // Metodo di rendering principale
     render() {
+        console.log("Sto per renderizzare l'inventario. Oggetti presenti:", this.items.length);
         this.container.innerHTML = '';
-        this.itemInstances = []; // Resetta le istanze
+        this.itemInstances = [];
 
         if (this.items.length === 0) {
             const emptyMessage = document.createElement('p');
@@ -75,31 +93,25 @@ export class Inventory {
         } else {
             this.items.forEach(item => {
                 const itemElement = document.createElement('div');
-                itemElement.style.padding = '10px';
-                itemElement.style.borderBottom = '1px solid rgba(255, 255, 255, 0.2)';
-                itemElement.style.display = 'flex';
-                itemElement.style.alignItems = 'center';
+                itemElement.classList.add('inventory-item');
 
                 const canvasContainer = document.createElement('div');
-                canvasContainer.style.width = '100px';
-                canvasContainer.style.height = '100px';
-                canvasContainer.style.marginRight = '10px';
+                canvasContainer.classList.add('inventory-item-canvas');
                 itemElement.appendChild(canvasContainer);
 
                 const itemText = document.createElement('p');
-                itemText.textContent = `Oggetto - Colore: #${item.material.color.getHexString()}`;
+                itemText.textContent = `Oggetto: ${item.name || 'Senza nome'}`;
+                itemText.classList.add('inventory-item-text');
                 itemElement.appendChild(itemText);
 
-                this.container.appendChild(itemElement);
-
-                // Crea una nuova istanza di InventoryItem per ogni oggetto
                 const inventoryItem = new InventoryItem(item, canvasContainer);
                 this.itemInstances.push(inventoryItem);
+
+                this.container.appendChild(itemElement);
             });
         }
     }
 
-    // Nuovo metodo di animazione per le vetrine 3D
     animate() {
         this.itemInstances.forEach(item => item.animate());
     }

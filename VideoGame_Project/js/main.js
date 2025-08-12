@@ -92,6 +92,8 @@ function init() {
     healthBarContainer = document.getElementById('health-bar-container');
     gameWorld = new GameWorld(scene, healthBarContainer, weaponModels);
 
+    // Nota: l'inventario viene inizializzato senza una callback per l'equipaggiamento manuale,
+    // in linea con la logica di equipaggiamento automatico attuale.
     inventory = new Inventory('inventory-items');
 
     controls = new PointerLockControls(camera, document.body);
@@ -393,9 +395,23 @@ function animate() {
         if (nearCollectible && controls.isLocked) {
             collectMessage.style.display = 'block';
             if (isCollecting) {
-                if (collectibleToCollect.damage !== undefined && collectibleToCollect.range !== undefined) {
-                    currentWeapon.damage = collectibleToCollect.damage;
-                    currentWeapon.range = collectibleToCollect.range;
+                // TROVA IL MODELLO ORIGINALE PRE-CARICATO
+                const originalModel = weaponModels.find(m => m.name === collectibleToCollect.name);
+
+                // Crea l'oggetto dati per l'inventario usando il modello originale
+                const itemData = {
+                    name: originalModel.name,
+                    damage: originalModel.damage,
+                    range: originalModel.range,
+                    model: originalModel
+                };
+                inventory.addItem(itemData);
+
+                // Aggiorna l'arma equipaggiata automaticamente
+                if (itemData.damage !== undefined && itemData.range !== undefined) {
+                    currentWeapon.damage = itemData.damage;
+                    currentWeapon.range = itemData.range;
+                    currentWeapon.name = itemData.name;
                     console.log(`Hai equipaggiato una nuova arma! Danno: ${currentWeapon.damage}, Portata: ${currentWeapon.range}`);
 
                     if (notification) {
@@ -407,9 +423,10 @@ function animate() {
                     }
                 }
 
-                inventory.addItem(collectibleToCollect);
+                // Rimuovi l'oggetto originale dal mondo di gioco
                 gameWorld.scene.remove(collectibleToCollect);
                 gameWorld.collectibleItems = gameWorld.collectibleItems.filter(item => item !== collectibleToCollect);
+
                 isCollecting = false;
                 collectMessage.style.display = 'none';
             }

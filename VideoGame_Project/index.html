@@ -1,96 +1,189 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <title>Esplorazione in Prima Persona</title>
+    <title>Gioco 3D</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        canvas { display: block; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #2c3e50; /* Sfondo scuro per un look moderno */
+            color: #ecf0f1;
+            font-family: 'Roboto', sans-serif;
+        }
         #blocker {
             position: absolute;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.8);
+            background-color: rgba(0,0,0,0.8); /* Sfondo più scuro per maggiore contrasto */
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             flex-direction: column;
-            color: white;
             text-align: center;
             font-size: 24px;
-            cursor: pointer;
-            animation: fadeIn 1s;
         }
         #instructions {
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            padding: 25px 40px;
+            background-color: #34495e; /* Tonalità di blu scuro */
+            border: 2px solid #3498db;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        #instructions:hover {
+            background-color: #2c3e50;
+            border-color: #ecf0f1;
         }
         #instructions p {
-            margin: 10px 0;
-            line-height: 1.5;
+            margin: 5px 0;
+            line-height: 1.6;
+        }
+        #health-bar-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 25px;
+            background-color: #555;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+            z-index: 10;
+        }
+        #health-bar {
+            height: 100%;
+            background-color: #e74c3c; /* Rosso per la salute, più impattante */
+            transition: width 0.3s ease;
         }
         .message {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #ecf0f1;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-family: 'Roboto', sans-serif;
+            display: none;
+            z-index: 10;
+            font-size: 18px;
+            border: 1px solid #7f8c8d;
+        }
+        #notification-message {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #ecf0f1;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-family: 'Roboto', sans-serif;
+            display: none;
+            z-index: 10;
+            border-left: 5px solid #2ecc71; /* Una barra verde per la notifica */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            animation: fadeinout 4s forwards;
+        }
+        @keyframes fadeinout {
+            0% { opacity: 0; transform: translateX(100%); }
+            10% { opacity: 1; transform: translateX(0); }
+            90% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(100%); }
+        }
+        #inventory-container {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: white;
-            background-color: rgba(0, 0, 0, 0.5);
-            padding: 10px;
-            border-radius: 5px;
-            font-family: sans-serif;
+            width: 500px;
+            max-height: 80%;
+            background-color: rgba(44, 62, 80, 0.95);
+            border: 2px solid #3498db;
+            border-radius: 15px;
+            color: #ecf0f1;
+            padding: 25px;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
+            font-family: 'Roboto', sans-serif;
             display: none;
-            pointer-events: none;
+            z-index: 20;
+            overflow-y: auto;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        #inventory-container h2 {
+            margin-top: 0;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        #inventory-items {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .inventory-item {
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #34495e;
+            border: 1px solid #7f8c8d;
+            transition: transform 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+        .inventory-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 10px #3498db;
+        }
+        .inventory-item-text {
+            margin: 0;
+            padding-left: 15px;
+            font-size: 18px;
+        }
+        .inventory-item-canvas {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #3498db;
+            border-radius: 8px;
         }
     </style>
 </head>
 <body>
-    <div id="health-bar-container" style="position: absolute; top: 0; left: 0; pointer-events: none;"></div>
     <div id="blocker">
         <div id="instructions">
-            <p>Clicca per iniziare</p>
+            <p>Fai clic per giocare</p>
             <p>
-                Muovi con le frecce<br/>
-                Salto con SPAZIO<br/>
-                Guarda con il mouse/touchpad
+                Muovi: WASD<br/>
+                Salta: SPAZIO<br/>
+                Vola: SHIFT<br/>
+                Interagisci: E<br/>
+                Apri/Chiudi Inventario: I
             </p>
         </div>
     </div>
-    <div id="inventory-container" style="
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 20px;
-    border-radius: 10px;
-    width: 300px;
-    height: 400px;
-    box-sizing: border-box;
-    display: none;
-">
-    <h2>Inventario</h2>
-    <div id="inventory-items" style="
-        height: calc(100% - 40px);
-        overflow-y: auto;
-        padding-right: 10px;
-        margin-top: 10px;
-    ">
-        </div>
-</div>
-<div id="notification-message" class="message" style="top: 10%; display: none;">
-    Nuovo oggetto aggiunto!
-</div>
-    <div id="interactive-message" class="message">PREMI X PER INTERAGIRE</div>
-    <div id="collect-message" class="message">PREMI E PER RACCOGLIERE</div>
-<script type="module" src="js/main.js"></script></body>
+
+    <div id="health-bar-container">
+        <div id="health-bar" style="width: 100%;"></div>
+    </div>
+    <div id="interactive-message" class="message">Premi X per aprire la cassa</div>
+    <div id="collect-message" class="message">Premi E per raccogliere l'arma</div>
+    <div id="notification-message"></div>
+
+    <div id="inventory-container">
+        <h2>Inventario</h2>
+        <div id="inventory-items"></div>
+    </div>
+
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js",
+            "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.126.0/examples/jsm/"
+          }
+        }
+    </script>
+    <script type="module" src="js/main.js"></script>
+</body>
 </html>

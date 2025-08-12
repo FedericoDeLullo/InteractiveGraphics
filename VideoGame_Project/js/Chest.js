@@ -103,7 +103,7 @@ export class Chest {
     }
 
     startSpinAnimation(onAnimationComplete) {
-        const spinDuration = 3; // Durata dello spin in secondi
+        const spinDuration = 3;
         const spinStartTime = performance.now();
         const spinSpeed = 0.1;
 
@@ -122,13 +122,17 @@ export class Chest {
                 const winningCubeIndex = Math.floor(Math.random() * this.spinCubes.length);
                 const winningCube = this.spinCubes[winningCubeIndex];
 
+                // Aggiungiamo le statistiche di danno e portata all'oggetto
+                winningCube.damage = Math.floor(Math.random() * 10) + 5;
+                winningCube.range = Math.floor(Math.random() * 10) + 10;
+                console.log(`L'arma creata ha un danno di: ${winningCube.damage} e una portata di: ${winningCube.range}`);
+
                 this.spinCubes.forEach((cube, index) => {
                     if (index !== winningCubeIndex) {
                         this.group.remove(cube);
                     }
                 });
 
-                // Rimuove il cubo vincitore dal gruppo della cassa e lo posiziona direttamente nella scena
                 this.group.remove(winningCube);
                 this.scene.add(winningCube);
 

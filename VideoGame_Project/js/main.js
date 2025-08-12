@@ -8,6 +8,7 @@ let scene, camera, renderer;
 let controls;
 let gameWorld;
 let inventory;
+let healthBarContainer;
 
 let moveForward = false;
 let moveBackward = false;
@@ -16,9 +17,11 @@ let moveRight = false;
 let isFlying = false;
 let canJump = false;
 let isCollecting = false;
-
-// Nuova variabile per lo stato dell'inventario
 let isInventoryOpen = false;
+
+let isAttacking = false;
+const attackCooldown = 0.5;
+let lastAttackTime = 0;
 
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
@@ -26,6 +29,12 @@ const raycaster = new THREE.Raycaster();
 const clock = new THREE.Clock();
 
 const playerSize = 2;
+
+// Rendiamo l'arma attuale un oggetto che può essere modificato
+let currentWeapon = {
+    damage: 5,
+    range: 15
+};
 
 function init() {
     scene = new THREE.Scene();
@@ -47,10 +56,10 @@ function init() {
     dirLight.position.set(-3, 10, -10);
     scene.add(dirLight);
 
-    gameWorld = new GameWorld(scene);
+    healthBarContainer = document.getElementById('health-bar-container');
+    gameWorld = new GameWorld(scene, healthBarContainer);
     gameWorld.createHouses();
 
-    // Passiamo l'ID dell'elemento HTML al costruttore
     inventory = new Inventory('inventory-items');
 
     controls = new PointerLockControls(camera, document.body);
@@ -152,15 +161,22 @@ function init() {
         }
     };
 
+    const onMouseDown = (event) => {
+        if (event.button === 0 && controls.isLocked && !isInventoryOpen) {
+            isAttacking = true;
+        }
+    };
+
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
+    document.addEventListener('mousedown', onMouseDown);
 
     document.addEventListener('keydown', (event) => {
         if (event.code === 'KeyX' && controls.isLocked) {
             const playerPos = controls.getObject().position;
             for (const chest of gameWorld.chests) {
                 const dist = chest.group.position.distanceTo(playerPos);
-                if (dist < 6 && !chest.isOpen) {
+                if (dist < 5 && !chest.isOpen) {
                     chest.open((item) => {
                         if (item) {
                             gameWorld.collectibleItems.push(item);
@@ -179,9 +195,10 @@ function animate() {
     requestAnimationFrame(animate);
 
     const delta = clock.getDelta();
+    const elapsedTime = clock.getElapsedTime();
 
-    // La logica di movimento e fisica viene eseguita solo se l'inventario è chiuso
     if (controls.isLocked && !isInventoryOpen) {
+        // ... (Logica di movimento e fisica invariata) ...
         const acceleration = 500.0;
         const drag = 20.0;
         const flySpeed = 25.0;
@@ -266,36 +283,71 @@ function animate() {
                 canJump = false;
             }
         }
+
+        // Logica di attacco
+        if (isAttacking && elapsedTime - lastAttackTime > attackCooldown) {
+            const raycaster = new THREE.Raycaster();
+            const cameraDirection = new THREE.Vector3();
+            camera.getWorldDirection(cameraDirection);
+            raycaster.set(camera.position, cameraDirection);
+
+            const aliveEnemies = gameWorld.enemies.filter(e => e.isAlive);
+            const enemyMeshes = aliveEnemies.map(e => e.mesh);
+
+            const intersects = raycaster.intersectObjects(enemyMeshes, true);
+
+            if (intersects.length > 0) {
+                const firstIntersection = intersects[0];
+                if (firstIntersection.distance <= currentWeapon.range) {
+                    const hitEnemy = aliveEnemies.find(e => e.mesh === firstIntersection.object);
+                    if (hitEnemy) {
+                        hitEnemy.takeDamage(currentWeapon.damage);
+
+                        if (!hitEnemy.isAlive) {
+                            gameWorld.scene.remove(hitEnemy.group);
+                            gameWorld.enemies = gameWorld.enemies.filter(e => e !== hitEnemy);
+                        }
+                    }
+                }
+            }
+            lastAttackTime = elapsedTime;
+            isAttacking = false;
+        }
+
+        // Aggiorna le barre della vita dei nemici
+        gameWorld.enemies.forEach(enemy => {
+            if (enemy.isAlive) {
+                enemy.updateHealthBar(camera, renderer);
+            }
+        });
     }
 
     const playerPos = controls.getObject().position;
     const interactMessage = document.getElementById('interactive-message');
     const collectMessage = document.getElementById('collect-message');
+    const notification = document.getElementById('notification-message');
 
     let nearChest = false;
     let nearCollectible = false;
     let collectibleToCollect = null;
 
-    // Controlla la vicinanza ai forzieri
     for (const chest of gameWorld.chests) {
         const dist = chest.group.position.distanceTo(playerPos);
-        if (dist < 6 && !chest.isOpen) {
+        if (dist < 5 && !chest.isOpen) {
             nearChest = true;
             break;
         }
     }
 
-    // Controlla la vicinanza agli oggetti collezionabili
     for (const item of gameWorld.collectibleItems) {
         const dist = item.position.distanceTo(playerPos);
-        if (dist < 6) {
+        if (dist < 2) {
             nearCollectible = true;
             collectibleToCollect = item;
             break;
         }
     }
 
-    // Gestione dei messaggi a schermo
     if (interactMessage) {
         if (nearChest && controls.isLocked) {
             interactMessage.style.display = 'block';
@@ -305,28 +357,38 @@ function animate() {
     }
 
     if (collectMessage) {
-    if (nearCollectible && controls.isLocked) {
-        collectMessage.style.display = 'block';
-        if (isCollecting) {
-            inventory.addItem(collectibleToCollect);
-            gameWorld.scene.remove(collectibleToCollect);
-            gameWorld.collectibleItems = gameWorld.collectibleItems.filter(item => item !== collectibleToCollect);
-            isCollecting = false;
-            collectMessage.style.display = 'none';
+        if (nearCollectible && controls.isLocked) {
+            collectMessage.style.display = 'block';
+            if (isCollecting) {
+                // Controlla se l'oggetto raccolto è un'arma
+                if (collectibleToCollect.damage !== undefined && collectibleToCollect.range !== undefined) {
+                    currentWeapon.damage = collectibleToCollect.damage;
+                    currentWeapon.range = collectibleToCollect.range;
+                    console.log(`Hai equipaggiato una nuova arma! Danno: ${currentWeapon.damage}, Portata: ${currentWeapon.range}`);
 
-            // Mostra la notifica per 2 secondi
-            const notification = document.getElementById('notification-message');
-            if (notification) {
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                }, 2000); // 2000 millisecondi = 2 secondi
+                    if (notification) {
+                        notification.innerHTML = `Hai equipaggiato una nuova arma!<br>Danno: ${currentWeapon.damage}, Portata: ${currentWeapon.range}`;
+                        notification.style.display = 'block';
+                        setTimeout(() => {
+                            notification.style.display = 'none';
+                        }, 4000);
+                    }
+                }
+
+                inventory.addItem(collectibleToCollect);
+                gameWorld.scene.remove(collectibleToCollect);
+                gameWorld.collectibleItems = gameWorld.collectibleItems.filter(item => item !== collectibleToCollect);
+                isCollecting = false;
+                collectMessage.style.display = 'none';
             }
+        } else {
+            collectMessage.style.display = 'none';
         }
-    } else {
-        collectMessage.style.display = 'none';
     }
-}
+
+    if (isInventoryOpen) {
+        inventory.animate();
+    }
 
     renderer.render(scene, camera);
 }

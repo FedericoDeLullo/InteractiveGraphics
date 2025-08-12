@@ -6,15 +6,18 @@ import { HouseB } from '../houses/HouseB.js';
 import { HouseC } from '../houses/HouseC.js';
 import { HouseD } from '../houses/HouseD.js';
 import { Chest } from './Chest.js';
+import { Enemy } from './Enemy.js';
 
 export class GameWorld {
-    constructor(scene) {
+    constructor(scene, healthBarContainer) { // Passiamo il container qui
         this.scene = scene;
         this.houses = [];
         this.trees = [];
         this.collidableObjects = [];
         this.chests = [];
-        this.collectibleItems = []; // Array per tenere traccia degli oggetti collezionabili
+        this.collectibleItems = [];
+        this.enemies = [];
+        this.healthBarContainer = healthBarContainer; // Salviamo il riferimento
         this.housePositions = {
             houseA: [
                 new THREE.Vector3(-50.5, 10.2, -58),
@@ -45,6 +48,9 @@ export class GameWorld {
                 new THREE.Vector3(63.5, 0.2, 38),
             ]
         };
+
+        this.createHouses();
+        this.createEnemies();
     }
 
     createHouses() {
@@ -134,5 +140,15 @@ export class GameWorld {
         road.position.set(positionX, 0.05, positionZ);
         this.scene.add(road);
         this.collidableObjects.push(road);
+    }
+
+    createEnemies() {
+        const enemy1 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-20, 1, -20));
+        const enemy2 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(30, 1, 10));
+        const enemy3 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-5, 1, -40));
+
+        this.enemies.push(enemy1, enemy2, enemy3);
+
+        this.collidableObjects.push(enemy1.mesh, enemy2.mesh, enemy3.mesh);
     }
 }

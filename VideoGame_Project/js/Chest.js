@@ -4,8 +4,6 @@ export class Chest {
     constructor(scene, position = new THREE.Vector3(0, 0, 0), collidableObjects = null, collectibleItems = null, weaponModels = []) {
         this.scene = scene;
         this.isOpen = false;
-        this.group = new THREE.Group();
-        this.group.position.copy(position);
         this.weaponModels = weaponModels;
 
         const width = 6;
@@ -16,37 +14,46 @@ export class Chest {
         const brownMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
         const darkBrownMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
 
+        // Creazione del fondo della cassa, che fungerà da terreno
+        const bottomGeom = new THREE.BoxGeometry(width, thickness, depth);
+        this.bottom = new THREE.Mesh(bottomGeom, brownMaterial);
+        this.bottom.position.set(position.x, position.y + thickness / 2, position.z);
+        this.scene.add(this.bottom);
+
+        // Aggiungi il fondo della cassa agli oggetti di collisione
+        if (collidableObjects) {
+            collidableObjects.push(this.bottom);
+        }
+
+        // Creazione del gruppo che conterrà le parti mobili della cassa
+        this.group = new THREE.Group();
+        this.group.position.copy(position);
+        this.scene.add(this.group);
+
         const frontGeom = new THREE.BoxGeometry(width, height, thickness);
         this.front = new THREE.Mesh(frontGeom, brownMaterial);
-        this.front.position.set(0, height / 2, depth / 2 - thickness / 2);
+        this.front.position.set(0, height / 2 + thickness, depth / 2 - thickness / 2);
         this.group.add(this.front);
 
         const backGeom = new THREE.BoxGeometry(width, height, thickness);
         this.back = new THREE.Mesh(backGeom, brownMaterial);
-        this.back.position.set(0, height / 2, -depth / 2 + thickness / 2);
+        this.back.position.set(0, height / 2 + thickness, -depth / 2 + thickness / 2);
         this.group.add(this.back);
 
         const leftGeom = new THREE.BoxGeometry(thickness, height, depth);
         this.left = new THREE.Mesh(leftGeom, brownMaterial);
-        this.left.position.set(-width / 2 + thickness / 2, height / 2, 0);
+        this.left.position.set(-width / 2 + thickness / 2, height / 2 + thickness, 0);
         this.group.add(this.left);
 
         const rightGeom = new THREE.BoxGeometry(thickness, height, depth);
         this.right = new THREE.Mesh(rightGeom, brownMaterial);
-        this.right.position.set(width / 2 - thickness / 2, height / 2, 0);
+        this.right.position.set(width / 2 - thickness / 2, height / 2 + thickness, 0);
         this.group.add(this.right);
-
-        const bottomGeom = new THREE.BoxGeometry(width, thickness, depth);
-        this.bottom = new THREE.Mesh(bottomGeom, brownMaterial);
-        this.bottom.position.set(0, thickness / 2, 0);
-        this.group.add(this.bottom);
 
         const lidGeom = new THREE.BoxGeometry(width, thickness, depth);
         this.lid = new THREE.Mesh(lidGeom, darkBrownMaterial);
-        this.lid.position.set(0, height + thickness / 2, 0);
+        this.lid.position.set(0, height + thickness + thickness / 2, 0);
         this.group.add(this.lid);
-
-        scene.add(this.group);
 
         this.spinWeapons = [];
         this.weaponModels.forEach((model, i) => {
@@ -60,7 +67,7 @@ export class Chest {
             weaponContainer.add(spinWeapon);
 
             const spacing = 2;
-            weaponContainer.position.set(0 + (i - 1) * spacing, height + thickness + 0.5, 0);
+            weaponContainer.position.set(0 + (i - 1) * spacing, height + thickness * 2 + 0.5, 0);
 
             weaponContainer.visible = false;
             this.group.add(weaponContainer);
@@ -68,12 +75,6 @@ export class Chest {
         });
 
         this.collectibleItem = null;
-
-        this.collisionMeshes = [this.front, this.back, this.left, this.right, this.bottom];
-
-        if (collidableObjects) {
-            collidableObjects.push(...this.collisionMeshes);
-        }
 
         this.audio = new Audio('sounds/chest-open.mp3');
     }

@@ -1,4 +1,3 @@
-// main.js
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.126.0/examples/jsm/controls/PointerLockControls.js';
 import { GameWorld } from './GameWorld.js';
@@ -11,12 +10,12 @@ let gameWorld;
 let inventory;
 let healthBarContainer;
 let weaponModels = [];
+let weaponPaths = []; // Conserviamo i percorsi delle armi qui
 
 let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
-let isFlying = false;
 let canJump = false;
 let isCollecting = false;
 let isInventoryOpen = false;
@@ -41,21 +40,24 @@ let currentWeapon = {
 
 function loadModels() {
     const loader = new GLTFLoader();
-    const weaponPaths = [
-        // Aggiunto il fattore di scala per ogni modello
-        { path: 'models/pistol.glb', stats: { damage: 10, range: 20, name: 'Pistola', scale: 0.5 } },
-        { path: 'models/rifle.glb', stats: { damage: 20, range: 40, name: 'Fucile', scale: 1.5} },
-        { path: 'models/rocketLauncher.glb', stats: { damage: 50, range: 60, name: 'Lanciarazzi', scale: 0.2 } }
+
+    // --- MODIFICA: Aggiunto imagePath per ogni arma ---
+    weaponPaths = [
+        { path: 'models/pistol.glb', imagePath: 'img/pistol.png', stats: { damage: 10, range: 20, name: 'Pistola', scale: 0.5 } },
+        { path: 'models/rifle.glb', imagePath: 'img/rifle.png', stats: { damage: 20, range: 40, name: 'Fucile', scale: 1.5} },
+        { path: 'models/rocketLauncher.glb', imagePath: 'img/rocketLauncher.png', stats: { damage: 50, range: 60, name: 'Lanciarazzi', scale: 0.2 } }
     ];
 
     let loadedCount = 0;
     weaponPaths.forEach(weapon => {
         loader.load(weapon.path, (gltf) => {
             const model = gltf.scene;
+            // Associa le statistiche e il percorso dell'immagine
             model.damage = weapon.stats.damage;
             model.range = weapon.stats.range;
             model.name = weapon.stats.name;
-            model.scale.set(weapon.stats.scale, weapon.stats.scale, weapon.stats.scale); // Applica la scala
+            model.imagePath = weapon.imagePath; // Salviamo il percorso
+            model.scale.set(weapon.stats.scale, weapon.stats.scale, weapon.stats.scale);
             weaponModels.push(model);
             loadedCount++;
 
@@ -92,8 +94,6 @@ function init() {
     healthBarContainer = document.getElementById('health-bar-container');
     gameWorld = new GameWorld(scene, healthBarContainer, weaponModels);
 
-    // Nota: l'inventario viene inizializzato senza una callback per l'equipaggiamento manuale,
-    // in linea con la logica di equipaggiamento automatico attuale.
     inventory = new Inventory('inventory-items');
 
     controls = new PointerLockControls(camera, document.body);
@@ -140,14 +140,10 @@ function init() {
                 moveRight = true;
                 break;
             case 'Space':
-                if (canJump && !isFlying) {
+                if (canJump && !isOpeningChest) {
                     velocity.y += 30;
                     canJump = false;
                 }
-                break;
-            case 'ShiftLeft':
-            case 'ShiftRight':
-                isFlying = true;
                 break;
             case 'KeyE':
                 isCollecting = true;
@@ -185,10 +181,6 @@ function init() {
             case 'KeyD':
                 moveRight = false;
                 break;
-            case 'ShiftLeft':
-            case 'ShiftRight':
-                isFlying = false;
-                break;
             case 'KeyE':
                 isCollecting = false;
                 break;
@@ -210,7 +202,7 @@ function init() {
             const playerPos = controls.getObject().position;
             for (const chest of gameWorld.chests) {
                 const dist = chest.group.position.distanceTo(playerPos);
-                if (dist < 6 && !chest.isOpen) {
+                if (dist < 6 && !chest.isOpen && !isOpeningChest) {
                     isOpeningChest = true;
                     chest.open((item) => {
                         if (item) {
@@ -236,22 +228,13 @@ function animate() {
     if (controls.isLocked && !isInventoryOpen) {
         const acceleration = 500.0;
         const drag = 20.0;
-        const flySpeed = 25.0;
         const playerHeight = playerSize;
 
         velocity.x -= velocity.x * drag * delta;
         velocity.z -= velocity.z * drag * delta;
 
         if (isOpeningChest) {
-            velocity.y = 0;
-        } else if (isFlying) {
-            velocity.y = 0;
-            if (moveForward || moveBackward) {
-                const directionY = Number(moveForward) - Number(moveBackward);
-                velocity.y = directionY * flySpeed;
-            } else {
-                velocity.y = 0;
-            }
+             velocity.y = 0;
         } else {
             velocity.y -= 9.8 * 10.0 * delta;
         }
@@ -260,50 +243,45 @@ function animate() {
         direction.x = Number(moveRight) - Number(moveLeft);
         direction.normalize();
 
-        if (!isFlying) {
-            if (moveForward || moveBackward) {
-                const movementVector = new THREE.Vector3();
-                camera.getWorldDirection(movementVector);
-                movementVector.y = 0;
-                movementVector.normalize();
-                movementVector.multiplyScalar(direction.z * 0.1);
+        if (moveForward || moveBackward) {
+            const movementVector = new THREE.Vector3();
+            camera.getWorldDirection(movementVector);
+            movementVector.y = 0;
+            movementVector.normalize();
+            movementVector.multiplyScalar(direction.z * 0.1);
 
-                raycaster.set(controls.getObject().position, movementVector);
-                const intersections = raycaster.intersectObjects(gameWorld.collidableObjects, true);
+            raycaster.set(controls.getObject().position, movementVector);
+            const intersections = raycaster.intersectObjects(gameWorld.collidableObjects, true);
 
-                if (intersections.length === 0 || intersections[0].distance > 1.0) {
-                    velocity.z -= direction.z * acceleration * delta;
-                } else {
-                    velocity.z = 0;
-                }
+            if (intersections.length === 0 || intersections[0].distance > 1.0) {
+                velocity.z -= direction.z * acceleration * delta;
+            } else {
+                velocity.z = 0;
             }
+        }
 
-            if (moveLeft || moveRight) {
-                const movementVector = new THREE.Vector3();
-                camera.getWorldDirection(movementVector);
-                const crossVector = new THREE.Vector3(0, 1, 0);
-                movementVector.cross(crossVector);
-                movementVector.multiplyScalar(-direction.x * 0.1);
+        if (moveLeft || moveRight) {
+            const movementVector = new THREE.Vector3();
+            camera.getWorldDirection(movementVector);
+            const crossVector = new THREE.Vector3(0, 1, 0);
+            movementVector.cross(crossVector);
+            movementVector.multiplyScalar(-direction.x * 0.1);
 
-                raycaster.set(controls.getObject().position, movementVector);
-                const intersections = raycaster.intersectObjects(gameWorld.collidableObjects, true);
+            raycaster.set(controls.getObject().position, movementVector);
+            const intersections = raycaster.intersectObjects(gameWorld.collidableObjects, true);
 
-                if (intersections.length === 0 || intersections[0].distance > 1.0) {
-                    velocity.x -= direction.x * acceleration * delta;
-                } else {
-                    velocity.x = 0;
-                }
+            if (intersections.length === 0 || intersections[0].distance > 1.0) {
+                velocity.x -= direction.x * acceleration * delta;
+            } else {
+                velocity.x = 0;
             }
-        } else {
-            if (direction.x !== 0) velocity.x = -direction.x * flySpeed;
-            if (direction.z !== 0) velocity.z = -direction.z * flySpeed;
         }
 
         controls.moveRight(-velocity.x * delta);
         controls.moveForward(-velocity.z * delta);
         controls.getObject().position.y += velocity.y * delta;
 
-        if (!isFlying && !isOpeningChest) {
+        if (!isOpeningChest) {
             const downwardRaycaster = new THREE.Raycaster(controls.getObject().position, new THREE.Vector3(0, -1, 0), 0, playerHeight);
             const groundIntersects = downwardRaycaster.intersectObjects(gameWorld.collidableObjects, true);
 
@@ -395,37 +373,41 @@ function animate() {
         if (nearCollectible && controls.isLocked) {
             collectMessage.style.display = 'block';
             if (isCollecting) {
-                // TROVA IL MODELLO ORIGINALE PRE-CARICATO
-                const originalModel = weaponModels.find(m => m.name === collectibleToCollect.name);
 
-                // Crea l'oggetto dati per l'inventario usando il modello originale
-                const itemData = {
-                    name: originalModel.name,
-                    damage: originalModel.damage,
-                    range: originalModel.range,
-                    model: originalModel
-                };
-                inventory.addItem(itemData);
+                // --- INIZIO MODIFICA: La logica di raccolta è ora semplificata ---
+                if (collectibleToCollect) {
+                    // Troviamo il modello originale per ottenere il percorso dell'immagine
+                    const originalModelData = weaponPaths.find(m => m.stats.name === collectibleToCollect.name);
 
-                // Aggiorna l'arma equipaggiata automaticamente
-                if (itemData.damage !== undefined && itemData.range !== undefined) {
-                    currentWeapon.damage = itemData.damage;
-                    currentWeapon.range = itemData.range;
-                    currentWeapon.name = itemData.name;
-                    console.log(`Hai equipaggiato una nuova arma! Danno: ${currentWeapon.damage}, Portata: ${currentWeapon.range}`);
+                    const itemData = {
+                        name: collectibleToCollect.name,
+                        damage: collectibleToCollect.damage,
+                        range: collectibleToCollect.range,
+                        imagePath: originalModelData.imagePath // Passiamo il percorso dell'immagine
+                    };
 
-                    if (notification) {
-                        notification.innerHTML = `Hai equipaggiato una nuova arma!<br>Danno: ${currentWeapon.damage}, Portata: ${currentWeapon.range}`;
-                        notification.style.display = 'block';
-                        setTimeout(() => {
-                            notification.style.display = 'none';
-                        }, 4000);
+                    inventory.addItem(itemData);
+
+                    if (itemData.damage !== undefined && itemData.range !== undefined) {
+                        currentWeapon.damage = itemData.damage;
+                        currentWeapon.range = itemData.range;
+                        currentWeapon.name = itemData.name;
+                        console.log(`Hai equipaggiato una nuova arma! Danno: ${currentWeapon.damage}, Portata: ${currentWeapon.range}`);
+
+                        if (notification) {
+                            notification.innerHTML = `Hai equipaggiato una nuova arma!<br>Danno: ${currentWeapon.damage}, Portata: ${currentWeapon.range}`;
+                            notification.style.display = 'block';
+                            setTimeout(() => {
+                                notification.style.display = 'none';
+                            }, 4000);
+                        }
                     }
-                }
 
-                // Rimuovi l'oggetto originale dal mondo di gioco
-                gameWorld.scene.remove(collectibleToCollect);
-                gameWorld.collectibleItems = gameWorld.collectibleItems.filter(item => item !== collectibleToCollect);
+                    // Rimuoviamo l'oggetto raccolto dalla scena e dall'array
+                    gameWorld.scene.remove(collectibleToCollect);
+                    gameWorld.collectibleItems = gameWorld.collectibleItems.filter(item => item !== collectibleToCollect);
+                }
+                // --- FINE MODIFICA ---
 
                 isCollecting = false;
                 collectMessage.style.display = 'none';
@@ -435,9 +417,8 @@ function animate() {
         }
     }
 
-    if (isInventoryOpen) {
-        inventory.animate();
-    }
+    // --- MODIFICA: Rimosso il codice per l'animazione dell'inventario ---
+    // dato che non ci sono più modelli 3D da animare.
 
     renderer.render(scene, camera);
 }

@@ -146,3 +146,39 @@ body {
     color: #ecf0f1;
     flex-grow: 1;
 }
+.discard-button {
+    background-color: #c0392b; /* Rosso scuro */
+    color: #ecf0f1;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: auto; /* Sposta il pulsante a destra */
+    transition: background-color 0.2s ease;
+}
+
+.discard-button:hover {
+    background-color: #e74c3c; /* Rosso più chiaro al passaggio del mouse */
+}
+.inventory-button-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-left: auto;
+}
+
+.equip-button {
+    background-color: #27ae60; /* Verde */
+    color: #ecf0f1;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.equip-button:hover {
+    background-color: #2ecc71; /* Verde più chiaro al passaggio del mouse */
+}

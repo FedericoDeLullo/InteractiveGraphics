@@ -126,7 +126,7 @@ function init() {
     dirLight.position.set(-3, 10, -10);
     scene.add(dirLight);
 
-    enemyHealthBarContainer = document.getElementById('enemy-health-bar-container'); // Ora usa il contenitore corretto
+    enemyHealthBarContainer = document.getElementById('enemy-health-bar-container');
     gameWorld = new GameWorld(scene, enemyHealthBarContainer, weaponModels);
     inventory = new Inventory('inventory-items');
     crosshair = document.getElementById('crosshair');
@@ -150,6 +150,7 @@ function init() {
         if (equippedWeaponMesh && equippedWeaponMesh.name === discardedItem.name) {
             camera.remove(equippedWeaponMesh);
             equippedWeaponMesh = null;
+            weaponHandler.equippedWeaponMesh = null;
             currentWeapon = {
                 damage: 5,
                 range: 15,
@@ -210,7 +211,8 @@ function init() {
             currentWeapon.imagePath = equippedItem.imagePath;
             currentWeapon.fireMode = equippedItem.fireMode;
 
-            weaponHandler.currentWeapon = currentWeapon; // Aggiorna l'arma in uso nel WeaponHandler
+            weaponHandler.currentWeapon = currentWeapon;
+            weaponHandler.equippedWeaponMesh = equippedWeaponMesh;
             updateEquippedWeaponHUD();
 
             const notification = document.getElementById('notification-message');
@@ -450,7 +452,6 @@ function animate() {
             }
         }
 
-        // Questo è il blocco cruciale per aggiornare le barre della vita dei nemici
         gameWorld.enemies.forEach(enemy => {
             if (enemy.isAlive) {
                 enemy.updateHealthBar(camera, renderer);

@@ -3,6 +3,7 @@ import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.126.0/
 import { GameWorld } from './GameWorld.js';
 import { Inventory } from './Inventory.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.126.0/examples/jsm/loaders/GLTFLoader.js';
+import { WeaponHandler } from './WeaponHandler.js';
 
 let scene, camera, renderer;
 let controls;
@@ -22,8 +23,9 @@ let isInventoryOpen = false;
 let isOpeningChest = false;
 
 let isAttacking = false;
-const attackCooldown = 0.5;
+const attackCooldown = 0.1;
 let lastAttackTime = 0;
+let isShooting = false; // Nuovo flag per lo sparo automatico
 
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
@@ -32,20 +34,54 @@ const clock = new THREE.Clock();
 
 const playerSize = 2;
 
+let crosshair = null;
+
 let currentWeapon = {
     damage: 5,
     range: 15,
-    name: 'Pugno'
+    name: 'Pugno',
+    imagePath: null,
+    fireMode: 'single'
 };
 
 let equippedWeaponMesh = null;
+let weaponHandler;
+
+function updateEquippedWeaponHUD() {
+    const hud = document.getElementById('equipped-weapon-hud');
+    const nameSpan = document.getElementById('equipped-weapon-name');
+    const damageSpan = document.getElementById('equipped-weapon-damage');
+    const rangeSpan = document.getElementById('equipped-weapon-range');
+    const imageDiv = document.getElementById('equipped-weapon-image');
+
+    if (currentWeapon.name === 'Pugno') {
+        nameSpan.textContent = currentWeapon.name;
+        damageSpan.textContent = currentWeapon.damage;
+        rangeSpan.textContent = currentWeapon.range;
+        imageDiv.innerHTML = '';
+        if (crosshair) {
+            crosshair.classList.add('hidden');
+        }
+    } else {
+        nameSpan.textContent = currentWeapon.name;
+        damageSpan.textContent = currentWeapon.damage;
+        rangeSpan.textContent = currentWeapon.range;
+
+        if (currentWeapon.imagePath) {
+            imageDiv.innerHTML = `<img src="${currentWeapon.imagePath}" alt="${currentWeapon.name}">`;
+        }
+        if (crosshair) {
+            crosshair.classList.remove('hidden');
+        }
+    }
+}
 
 function loadModels() {
     const loader = new GLTFLoader();
     weaponPaths = [
-        { path: 'models/pistol.glb', imagePath: 'img/pistol.png', stats: { damage: 10, range: 20, name: 'Pistola', scale: 0.5 } },
-        { path: 'models/rifle.glb', imagePath: 'img/rifle.png', stats: { damage: 20, range: 40, name: 'Fucile', scale: 1.5} },
-        { path: 'models/rocketLauncher.glb', imagePath: 'img/rocketLauncher.png', stats: { damage: 50, range: 60, name: 'Lanciarazzi', scale: 0.2 } }
+        { path: 'models/pistol.glb', imagePath: 'img/pistol.png', stats: { damage: 10, range: 20, name: 'Pistola', scale: 0.5, fireMode: 'single' } },
+        { path: 'models/rifle.glb', imagePath: 'img/rifle.png', stats: { damage: 20, range: 40, name: 'Fucile', scale: 1.5, fireMode: 'auto' } },
+        { path: 'models/rocketLauncher.glb', imagePath: 'img/rocketLauncher.png', stats: { damage: 50, range: 60, name: 'Lanciarazzi', scale: 0.2, fireMode: 'single' } }
     ];
 
     let loadedCount = 0;
@@ -92,12 +128,11 @@ function init() {
 
     healthBarContainer = document.getElementById('health-bar-container');
     gameWorld = new GameWorld(scene, healthBarContainer, weaponModels);
-
     inventory = new Inventory('inventory-items');
+    crosshair = document.getElementById('crosshair');
+    weaponHandler = new WeaponHandler(scene, camera, gameWorld, currentWeapon);
 
-    // Imposta il callback per l'evento di scarto (MODIFICATO)
     inventory.onDiscardCallback = (discardedItem) => {
-        // Aggiunge la mesh scartata alla scena
         const playerPosition = controls.getObject().position.clone();
         const originalWeaponModel = weaponModels.find(w => w.name === discardedItem.name);
         if (originalWeaponModel) {
@@ -112,20 +147,17 @@ function init() {
             gameWorld.collectibleItems.push(newWeapon);
         }
 
-        // Controlla se l'arma scartata è quella attualmente equipaggiata
         if (equippedWeaponMesh && equippedWeaponMesh.name === discardedItem.name) {
-            // Rimuovi la mesh dell'arma equipaggiata dalla telecamera
             camera.remove(equippedWeaponMesh);
-            equippedWeaponMesh = null; // Resetta la variabile
-
-            // Resetta le statistiche dell'arma in uso al "pugno"
+            equippedWeaponMesh = null;
             currentWeapon = {
                 damage: 5,
                 range: 15,
-                name: 'Pugno'
+                name: 'Pugno',
+                imagePath: null,
+                fireMode: 'single'
             };
-
-            // Aggiorna l'interfaccia utente con una notifica
+            updateEquippedWeaponHUD();
             const notification = document.getElementById('notification-message');
             if (notification) {
                 notification.innerHTML = `Hai scartato ${discardedItem.name}. Ora usi il pugno.`;
@@ -135,26 +167,21 @@ function init() {
                 }, 4000);
             }
         }
-
         controls.lock();
         isInventoryOpen = false;
         document.getElementById('inventory-container').style.display = 'none';
     };
 
-    // Imposta il callback per l'evento di equipaggiamento (MODIFICATO)
     inventory.onEquipCallback = (equippedItem) => {
-        // Rimuovi l'arma precedente (se esiste)
         if (equippedWeaponMesh) {
             camera.remove(equippedWeaponMesh);
         }
 
-        // Trova il modello 3D dell'arma da equipaggiare
         const originalWeaponModel = weaponModels.find(w => w.name === equippedItem.name);
         if (originalWeaponModel) {
             equippedWeaponMesh = originalWeaponModel.clone();
-            equippedWeaponMesh.name = equippedItem.name; // Assegna il nome per il controllo dello scarto
+            equippedWeaponMesh.name = equippedItem.name;
 
-            // Imposta la posizione e la rotazione in base all'arma
             switch(equippedItem.name) {
                 case 'Pistola':
                     equippedWeaponMesh.position.set(0.6, -0.7, -1.2);
@@ -174,16 +201,17 @@ function init() {
                     break;
             }
 
-            // Aggiungi l'arma alla telecamera
             camera.add(equippedWeaponMesh);
             console.log(`Hai equipaggiato l'arma: ${equippedItem.name}`);
 
-            // Aggiorna le statistiche dell'arma in uso
             currentWeapon.damage = equippedItem.damage;
             currentWeapon.range = equippedItem.range;
             currentWeapon.name = equippedItem.name;
+            currentWeapon.imagePath = equippedItem.imagePath;
+            currentWeapon.fireMode = equippedItem.fireMode;
 
-            // Notifica il giocatore
+            updateEquippedWeaponHUD();
+
             const notification = document.getElementById('notification-message');
             if (notification) {
                 notification.innerHTML = `Hai equipaggiato ${equippedItem.name}!<br>Danno: ${currentWeapon.damage}, Portata: ${currentWeapon.range}`;
@@ -194,7 +222,6 @@ function init() {
             }
         }
 
-        // Chiudi l'inventario e sblocca i controlli
         controls.lock();
         isInventoryOpen = false;
         document.getElementById('inventory-container').style.display = 'none';
@@ -293,13 +320,28 @@ function init() {
 
     const onMouseDown = (event) => {
         if (event.button === 0 && controls.isLocked && !isInventoryOpen) {
-            isAttacking = true;
+            if (currentWeapon.name === 'Pugno') {
+                const currentTime = clock.getElapsedTime();
+                if (currentTime - lastAttackTime > attackCooldown) {
+                    isAttacking = true;
+                    lastAttackTime = currentTime;
+                }
+            } else {
+                isShooting = true;
+            }
+        }
+    };
+
+    const onMouseUp = (event) => {
+        if (event.button === 0) {
+            isShooting = false;
         }
     };
 
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
     document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mouseup', onMouseUp);
 
     document.addEventListener('keydown', (event) => {
         if (event.code === 'KeyX' && controls.isLocked) {
@@ -320,6 +362,7 @@ function init() {
         }
     });
 
+    updateEquippedWeaponHUD();
     animate();
 }
 
@@ -403,7 +446,20 @@ function animate() {
             }
         }
 
-        if (isAttacking && elapsedTime - lastAttackTime > attackCooldown) {
+        // Logica di sparo basata sul tipo di arma
+        if (isShooting && elapsedTime - lastAttackTime > attackCooldown) {
+            if (currentWeapon.fireMode === 'auto') {
+                weaponHandler.shoot();
+                lastAttackTime = elapsedTime;
+            } else if (currentWeapon.fireMode === 'single') {
+                weaponHandler.shoot();
+                lastAttackTime = elapsedTime;
+                isShooting = false;
+            }
+        }
+
+        // Logica di attacco per il pugno
+        if (isAttacking && elapsedTime - lastAttackTime > attackCooldown && currentWeapon.name === 'Pugno') {
             const raycaster = new THREE.Raycaster();
             const cameraDirection = new THREE.Vector3();
             camera.getWorldDirection(cameraDirection);
@@ -420,7 +476,6 @@ function animate() {
                     const hitEnemy = aliveEnemies.find(e => e.mesh === firstIntersection.object);
                     if (hitEnemy) {
                         hitEnemy.takeDamage(currentWeapon.damage);
-
                         if (!hitEnemy.isAlive) {
                             gameWorld.scene.remove(hitEnemy.group);
                             gameWorld.enemies = gameWorld.enemies.filter(e => e !== hitEnemy);
@@ -438,6 +493,8 @@ function animate() {
             }
         });
     }
+
+    weaponHandler.update(delta);
 
     const playerPos = controls.getObject().position;
     const interactMessage = document.getElementById('interactive-message');
@@ -483,17 +540,13 @@ function animate() {
                         name: collectibleToCollect.name,
                         damage: collectibleToCollect.damage,
                         range: collectibleToCollect.range,
-                        imagePath: originalModelData.imagePath
+                        imagePath: originalModelData.imagePath,
+                        fireMode: originalModelData.stats.fireMode
                     };
-
                     inventory.addItem(itemData);
-
-                    // Equipaggiamento automatico se l'arma non è ancora equipaggiata (MODIFICATO)
                     if (!equippedWeaponMesh) {
                         inventory.onEquipCallback(itemData);
                     }
-
-                    // Rimuovi l'arma dalla scena
                     gameWorld.scene.remove(collectibleToCollect);
                     gameWorld.collectibleItems = gameWorld.collectibleItems.filter(item => item !== collectibleToCollect);
                 }

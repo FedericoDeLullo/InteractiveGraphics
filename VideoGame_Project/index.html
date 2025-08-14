@@ -13,7 +13,7 @@
                 Muovi: WASD<br/>
                 Salta: SPAZIO<br/>
                 Interagisci: E<br/>
-                Apri/Chiudi Inventario: I
+                Apri/Chiudi Inventario: I<br/>
             </p>
         </div>
     </div>
@@ -21,6 +21,7 @@
     <div id="health-bar-container">
         <div id="health-bar" style="width: 100%;"></div>
     </div>
+
     <div id="interactive-message" class="message">Premi X per aprire la cassa</div>
     <div id="collect-message" class="message">Premi E per raccogliere l'arma</div>
     <div id="notification-message"></div>
@@ -29,6 +30,17 @@
         <h2>Inventario</h2>
         <div id="inventory-items"></div>
     </div>
+
+    <div id="equipped-weapon-hud">
+        <div id="equipped-weapon-image"></div>
+        <div id="equipped-weapon-info">
+            <p><strong>Arma: </strong><span id="equipped-weapon-name">Pugno</span></p>
+            <p><strong>Danno: </strong><span id="equipped-weapon-damage">5</span></p>
+            <p><strong>Portata: </strong><span id="equipped-weapon-range">15</span></p>
+        </div>
+    </div>
+
+    <div id="crosshair" class="hidden"></div>
 
     <script type="importmap">
         {

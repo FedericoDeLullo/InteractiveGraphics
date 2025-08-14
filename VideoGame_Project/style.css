@@ -20,15 +20,15 @@ body {
 #instructions {
     cursor: pointer;
     padding: 25px 40px;
-    background-color: #e67e22; /* Arancione vivace */
-    border: 2px solid #f1c40f; /* Giallo brillante */
+    background-color: #2e8b57; /* Verde militare scuro */
+    border: 2px solid #556b2f; /* Verde oliva */
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
     transition: all 0.3s ease;
 }
 #instructions:hover {
-    background-color: #d35400; /* Arancione più scuro al passaggio del mouse */
-    border-color: #ffeb3b; /* Giallo ancora più brillante */
+    background-color: #3cb371; /* Verde mare chiaro */
+    border-color: #6b8e23; /* Verde oliva più scuro */
 }
 #instructions p {
     margin: 5px 0;
@@ -93,11 +93,13 @@ body {
     position: absolute;
     top: 50%;
     left: 50%;
+    justify-items: center;
+    align-items: center ;
     transform: translate(-50%, -50%);
-    width: 500px;
+    width: 400px; /* Larghezza aumentata per le colonne */
     max-height: 80%;
-    background-color: rgba(231, 76, 60, 0.95); /* Rosso leggero per lo sfondo */
-    border: 2px solid #ff4d4d; /* Rosso acceso per il bordo */
+    background-color: rgba(47, 79, 79, 0.95); /* Grigio scuro verde */
+    border: 2px solid #5f9ea0; /* Azzurro cadetto */
     border-radius: 15px;
     color: #ecf0f1;
     padding: 25px;
@@ -116,20 +118,19 @@ body {
     display: flex;
     flex-direction: row;
     align-items: center;
-    text-align: left;
     border: 1px solid #7f8c8d;
     padding: 10px;
-    background-color: #d35400; /* Arancione scuro per gli slot */
+    background-color: #36454F; /* Grigio carbone scuro */
     border-radius: 8px;
     transition: transform 0.2s ease;
 }
 .inventory-item:hover {
     transform: scale(1.02);
-    box-shadow: 0 0 10px #ffcc00;
+    box-shadow: 0 0 10px #708090; /* Grigio ardesia */
 }
 .inventory-item-image {
-    width: 120px;
-    height: 120px;
+    width: 100px;
+    height: 100px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -141,35 +142,47 @@ body {
     max-height: 100%;
     object-fit: contain;
 }
-.inventory-item-text {
-    font-size: 16px;
-    color: #ecf0f1;
-    flex-grow: 1;
+
+/* NUOVO: Colonne dell'inventario */
+.inventory-details {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
 }
+.inventory-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-width: 100px; /* Larghezza minima per le colonne */
+}
+
+.inventory-column h4 {
+    margin: 0 0 5px 0;
+}
+
 .discard-button {
-    background-color: #c0392b; /* Rosso scuro */
+    background-color: #dc143c; /* Rosso cremisi */
     color: #ecf0f1;
     border: none;
     padding: 8px 15px;
     border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
-    margin-left: auto; /* Sposta il pulsante a destra */
+    margin-left: auto;
     transition: background-color 0.2s ease;
 }
-
 .discard-button:hover {
-    background-color: #e74c3c; /* Rosso più chiaro al passaggio del mouse */
+    background-color: #e74c3c;
 }
 .inventory-button-container {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    margin-left: auto;
+    margin-left: 15px;
 }
-
 .equip-button {
-    background-color: #27ae60; /* Verde */
+    background-color: #006400; /* Verde scuro */
     color: #ecf0f1;
     border: none;
     padding: 8px 15px;
@@ -178,7 +191,57 @@ body {
     font-size: 14px;
     transition: background-color 0.2s ease;
 }
-
 .equip-button:hover {
-    background-color: #2ecc71; /* Verde più chiaro al passaggio del mouse */
+    background-color: #228b22; /* Verde foresta */
+}
+#equipped-weapon-hud {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 250px;
+    height: 120px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid #34495e;
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 10;
+}
+#equipped-weapon-image {
+    width: 100px;
+    height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+#equipped-weapon-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+#equipped-weapon-info {
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+}
+#crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    margin-top: -5px; /* Centra verticalmente */
+    margin-left: -5px; /* Centra orizzontalmente */
+    border-radius: 50%; /* Rende l'elemento un cerchio */
+    background-color: white;
+    border: 1px solid black;
+    pointer-events: none; /* Permette ai click del mouse di passare attraverso */
+    z-index: 1000;
+}
+
+/* Classe per nascondere il mirino */
+.hidden {
+    display: none;
 }

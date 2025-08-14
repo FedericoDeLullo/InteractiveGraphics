@@ -1,93 +1,87 @@
-// Inventory.js
 export class Inventory {
-    constructor(elementId) {
+    constructor(containerId) {
         this.items = [];
-        this.container = document.getElementById(elementId);
-        this.onDiscardCallback = () => {};
-        this.onEquipCallback = () => {}; // Aggiungi il nuovo callback per l'equipaggiamento
+        this.container = document.getElementById(containerId);
+        this.onDiscardCallback = null;
+        this.onEquipCallback = null;
     }
 
     addItem(item) {
         this.items.push(item);
-        console.log("Oggetto aggiunto all'inventario:", item);
+        console.log(`Oggetto aggiunto all'inventario: ${item.name}`);
         this.render();
     }
 
-    removeItem(item) {
-        const index = this.items.indexOf(item);
-        if (index > -1) {
-            this.items.splice(index, 1);
-            console.log("Oggetto rimosso dall'inventario:", item);
-            this.render();
-        }
-    }
-
-    onItemDiscarded(item, index) {
-        console.log("Oggetto scartato dall'inventario:", item);
-        const discardedItem = this.items.splice(index, 1)[0];
-        this.onDiscardCallback(discardedItem);
+    removeItem(itemToRemove) {
+        this.items = this.items.filter(item => item !== itemToRemove);
+        console.log(`Oggetto rimosso dall'inventario: ${itemToRemove.name}`);
         this.render();
-    }
-
-    // Nuovo metodo per gestire l'equipaggiamento
-    onItemEquipped(item) {
-        console.log("Oggetto equipaggiato:", item);
-        this.onEquipCallback(item);
     }
 
     render() {
         this.container.innerHTML = '';
-
         if (this.items.length === 0) {
-            const emptyMessage = document.createElement('p');
-            emptyMessage.textContent = 'Il tuo inventario è vuoto.';
-            this.container.appendChild(emptyMessage);
-        } else {
-            this.items.forEach((item, index) => {
-                const itemElement = document.createElement('div');
-                itemElement.classList.add('inventory-item');
-
-                const imageContainer = document.createElement('div');
-                imageContainer.classList.add('inventory-item-image');
-
-                const itemImage = document.createElement('img');
-                itemImage.src = item.imagePath;
-                itemImage.alt = item.name;
-
-                imageContainer.appendChild(itemImage);
-                itemElement.appendChild(imageContainer);
-
-                const itemText = document.createElement('p');
-                itemText.textContent = `Oggetto: ${item.name || 'Senza nome'}`;
-                itemText.classList.add('inventory-item-text');
-                itemElement.appendChild(itemText);
-               
-                // Contenitore per i pulsanti
-                const buttonContainer = document.createElement('div');
-                buttonContainer.classList.add('inventory-button-container');
-
-                // Pulsante per equipaggiare l'arma
-                const equipButton = document.createElement('button');
-                equipButton.textContent = 'Equipaggia';
-                equipButton.classList.add('equip-button');
-                buttonContainer.appendChild(equipButton);
-
-                // Pulsante per scartare l'arma
-                const discardButton = document.createElement('button');
-                discardButton.textContent = 'Scarta';
-                discardButton.classList.add('discard-button');
-                buttonContainer.appendChild(discardButton);
-
-                itemElement.appendChild(buttonContainer);
-                this.container.appendChild(itemElement);
-
-                equipButton.addEventListener('click', () => {
-                    this.onItemEquipped(item);
-                });
-                discardButton.addEventListener('click', () => {
-                    this.onItemDiscarded(item, index);
-                });
-            });
+            this.container.innerHTML = '<p>Il tuo inventario è vuoto.</p>';
+            return;
         }
+
+        this.items.forEach(item => {
+            const itemElement = document.createElement('div');
+            itemElement.className = 'inventory-item';
+
+            // Immagine
+            const imageWrapper = document.createElement('div');
+            imageWrapper.className = 'inventory-item-image';
+            const image = document.createElement('img');
+            image.src = item.imagePath;
+            image.alt = item.name;
+            imageWrapper.appendChild(image);
+            itemElement.appendChild(imageWrapper);
+
+            // Testo (Nome e Statistiche)
+            const textWrapper = document.createElement('div');
+            textWrapper.className = 'inventory-item-text';
+
+            const name = document.createElement('h4');
+            name.textContent = item.name;
+            textWrapper.appendChild(name);
+
+            // NUOVO: Elemento per le statistiche
+            const stats = document.createElement('div');
+            stats.className = 'inventory-item-stats';
+            stats.innerHTML = `Danno: ${item.damage}<br>Portata: ${item.range}`;
+            textWrapper.appendChild(stats);
+
+            itemElement.appendChild(textWrapper);
+
+            // Pulsanti
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'inventory-button-container';
+
+            const equipButton = document.createElement('button');
+            equipButton.className = 'equip-button';
+            equipButton.textContent = 'Equipaggia';
+            equipButton.onclick = () => {
+                if (this.onEquipCallback) {
+                    this.onEquipCallback(item);
+                }
+            };
+            buttonContainer.appendChild(equipButton);
+
+            const discardButton = document.createElement('button');
+            discardButton.className = 'discard-button';
+            discardButton.textContent = 'Scarta';
+            discardButton.onclick = () => {
+                if (this.onDiscardCallback) {
+                    this.onDiscardCallback(item);
+                }
+                this.removeItem(item);
+            };
+            buttonContainer.appendChild(discardButton);
+
+            itemElement.appendChild(buttonContainer);
+
+            this.container.appendChild(itemElement);
+        });
     }
 }

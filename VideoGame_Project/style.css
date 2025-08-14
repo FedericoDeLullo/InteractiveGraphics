@@ -245,3 +245,18 @@ body {
 .hidden {
     display: none;
 }
+.enemy-health-bar {
+    position: absolute;
+    width: 50px;
+    height: 5px;
+    background-color: red;
+    border: 1px solid black;
+    z-index: 10;
+    display: none; /* Nasconde la barra inizialmente */
+}
+
+.enemy-health-bar-inner {
+    height: 100%;
+    background-color: green;
+    transition: width 0.3s ease;
+}

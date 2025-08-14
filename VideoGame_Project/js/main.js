@@ -4,12 +4,13 @@ import { GameWorld } from './GameWorld.js';
 import { Inventory } from './Inventory.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.126.0/examples/jsm/loaders/GLTFLoader.js';
 import { WeaponHandler } from './WeaponHandler.js';
+import { Enemy } from './Enemy.js';
 
 let scene, camera, renderer;
 let controls;
 let gameWorld;
 let inventory;
-let healthBarContainer;
+let enemyHealthBarContainer;
 let weaponModels = [];
 let weaponPaths = [];
 
@@ -22,10 +23,9 @@ let isCollecting = false;
 let isInventoryOpen = false;
 let isOpeningChest = false;
 
-let isAttacking = false;
+let isShooting = false;
 const attackCooldown = 0.1;
 let lastAttackTime = 0;
-let isShooting = false; // Nuovo flag per lo sparo automatico
 
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
@@ -126,8 +126,8 @@ function init() {
     dirLight.position.set(-3, 10, -10);
     scene.add(dirLight);
 
-    healthBarContainer = document.getElementById('health-bar-container');
-    gameWorld = new GameWorld(scene, healthBarContainer, weaponModels);
+    enemyHealthBarContainer = document.getElementById('enemy-health-bar-container'); // Ora usa il contenitore corretto
+    gameWorld = new GameWorld(scene, enemyHealthBarContainer, weaponModels);
     inventory = new Inventory('inventory-items');
     crosshair = document.getElementById('crosshair');
     weaponHandler = new WeaponHandler(scene, camera, gameWorld, currentWeapon);
@@ -210,6 +210,7 @@ function init() {
             currentWeapon.imagePath = equippedItem.imagePath;
             currentWeapon.fireMode = equippedItem.fireMode;
 
+            weaponHandler.currentWeapon = currentWeapon; // Aggiorna l'arma in uso nel WeaponHandler
             updateEquippedWeaponHUD();
 
             const notification = document.getElementById('notification-message');
@@ -320,15 +321,7 @@ function init() {
 
     const onMouseDown = (event) => {
         if (event.button === 0 && controls.isLocked && !isInventoryOpen) {
-            if (currentWeapon.name === 'Pugno') {
-                const currentTime = clock.getElapsedTime();
-                if (currentTime - lastAttackTime > attackCooldown) {
-                    isAttacking = true;
-                    lastAttackTime = currentTime;
-                }
-            } else {
-                isShooting = true;
-            }
+            isShooting = true;
         }
     };
 
@@ -446,7 +439,6 @@ function animate() {
             }
         }
 
-        // Logica di sparo basata sul tipo di arma
         if (isShooting && elapsedTime - lastAttackTime > attackCooldown) {
             if (currentWeapon.fireMode === 'auto') {
                 weaponHandler.shoot();
@@ -458,35 +450,7 @@ function animate() {
             }
         }
 
-        // Logica di attacco per il pugno
-        if (isAttacking && elapsedTime - lastAttackTime > attackCooldown && currentWeapon.name === 'Pugno') {
-            const raycaster = new THREE.Raycaster();
-            const cameraDirection = new THREE.Vector3();
-            camera.getWorldDirection(cameraDirection);
-            raycaster.set(camera.position, cameraDirection);
-
-            const aliveEnemies = gameWorld.enemies.filter(e => e.isAlive);
-            const enemyMeshes = aliveEnemies.map(e => e.mesh);
-
-            const intersects = raycaster.intersectObjects(enemyMeshes, true);
-
-            if (intersects.length > 0) {
-                const firstIntersection = intersects[0];
-                if (firstIntersection.distance <= currentWeapon.range) {
-                    const hitEnemy = aliveEnemies.find(e => e.mesh === firstIntersection.object);
-                    if (hitEnemy) {
-                        hitEnemy.takeDamage(currentWeapon.damage);
-                        if (!hitEnemy.isAlive) {
-                            gameWorld.scene.remove(hitEnemy.group);
-                            gameWorld.enemies = gameWorld.enemies.filter(e => e !== hitEnemy);
-                        }
-                    }
-                }
-            }
-            lastAttackTime = elapsedTime;
-            isAttacking = false;
-        }
-
+        // Questo è il blocco cruciale per aggiornare le barre della vita dei nemici
         gameWorld.enemies.forEach(enemy => {
             if (enemy.isAlive) {
                 enemy.updateHealthBar(camera, renderer);

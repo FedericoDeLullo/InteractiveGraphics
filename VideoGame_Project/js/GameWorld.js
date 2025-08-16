@@ -67,7 +67,6 @@ export class GameWorld {
         this.createRoad(100, 20, 0, 40);
         this.createRoad(100, 20, -40, 0);
         this.createRoad(100, 20, 40, 0);
-        this.createRoad(100, 20, -40, 0);
         this.createRoad(20, 100, -50, 0);
         this.createRoad(20, 100, 50, 0);
 
@@ -184,39 +183,41 @@ export class GameWorld {
     }
 
     /**
-     * Aggiorna lo stato del mondo di gioco.
-     * Chiamato nel ciclo di animazione principale.
+     * Aggiorna lo stato dei nemici e delle barre della vita.
+     * @param {number} delta - Il tempo trascorso dall'ultimo frame.
+     * @param {THREE.Vector3} playerPosition - La posizione del giocatore.
      * @param {THREE.Camera} camera - La telecamera della scena.
      * @param {THREE.WebGLRenderer} renderer - Il renderer Three.js.
      */
-    update(camera, renderer) {
-        // Itera al contrario per rimuovere in modo sicuro gli elementi dall'array.
+    update(delta, playerPosition, camera, renderer) {
+        // Usa un ciclo all'indietro per rimuovere i nemici morti senza rovinare l'iterazione
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
 
-            // Aggiorna la barra della vita del nemico.
+            // Aggiorna la logica di movimento e attacco del nemico
+            enemy.update(delta, playerPosition, this.collidableObjects);
+
+            // Aggiorna la posizione della barra della vita del nemico
             enemy.updateHealthBar(camera, renderer);
 
-            // Se il nemico è morto, rimuovilo dai nostri array.
             if (!enemy.isAlive) {
-                // Rimuovi la mesh del nemico dall'array degli oggetti collidibili.
+                // ⭐ Rimuovi l'intero gruppo del nemico dalla scena, non solo il mesh
+                this.scene.remove(enemy.group);
+
+                // Rimuove l'elemento HTML della barra della vita
+                if (enemy.healthBar) {
+                    this.healthBarContainer.removeChild(enemy.healthBar);
+                }
+
+                // Rimuove l'oggetto del nemico dall'array degli oggetti collidibili
                 const collidableIndex = this.collidableObjects.indexOf(enemy.mesh);
                 if (collidableIndex > -1) {
                     this.collidableObjects.splice(collidableIndex, 1);
                 }
 
-                // Rimuovi il nemico dall'array dei nemici.
+                // Rimuove il nemico dall'array dei nemici
                 this.enemies.splice(i, 1);
-            } else {
-                // Altrimenti, aggiorna il nemico (logica di movimento, ecc.).
-                enemy.update();
             }
         }
-
-        // Qui puoi aggiungere altri aggiornamenti, come gli oggetti collezionabili.
-        // Esempio:
-        // for (const item of this.collectibleItems) {
-        //     item.update();
-        // }
     }
 }

@@ -32,7 +32,7 @@ const direction = new THREE.Vector3();
 const raycaster = new THREE.Raycaster();
 const clock = new THREE.Clock();
 
-const playerSize = 2;
+const playerSize = 3;
 
 let crosshair = null;
 
@@ -79,8 +79,8 @@ function updateEquippedWeaponHUD() {
 function loadModels() {
     const loader = new GLTFLoader();
     weaponPaths = [
-        { path: 'models/pistol.glb', imagePath: 'img/pistol.png', stats: { damage: 10, range: 20, name: 'Pistola', scale: 0.5, fireMode: 'single' } },
-        { path: 'models/rifle.glb', imagePath: 'img/rifle.png', stats: { damage: 20, range: 40, name: 'Fucile', scale: 1.5, fireMode: 'auto' } },
+        { path: 'models/pistol.glb', imagePath: 'img/pistol.png', stats: { damage: 10, range: 20, name: 'Pistola', scale: 0.3, fireMode: 'single' } },
+        { path: 'models/rifle.glb', imagePath: 'img/rifle.png', stats: { damage: 20, range: 40, name: 'Fucile', scale: 2.2, fireMode: 'auto' } },
         { path: 'models/rocketLauncher.glb', imagePath: 'img/rocketLauncher.png', stats: { damage: 50, range: 60, name: 'Lanciarazzi', scale: 0.2, fireMode: 'single' } }
     ];
 
@@ -183,7 +183,7 @@ function init() {
             equippedWeaponMesh = originalWeaponModel.clone();
             equippedWeaponMesh.name = equippedItem.name;
 
-            switch(equippedItem.name) {
+            switch (equippedItem.name) {
                 case 'Pistola':
                     equippedWeaponMesh.position.set(0.6, -0.7, -1.2);
                     equippedWeaponMesh.rotation.set(Math.PI, 0, Math.PI);
@@ -452,11 +452,8 @@ function animate() {
             }
         }
 
-        gameWorld.enemies.forEach(enemy => {
-            if (enemy.isAlive) {
-                enemy.updateHealthBar(camera, renderer);
-            }
-        });
+        // Chiamata al metodo di aggiornamento in GameWorld per gestire i nemici
+        gameWorld.update(delta, controls.getObject().position, camera, renderer);
     }
 
     weaponHandler.update(delta);

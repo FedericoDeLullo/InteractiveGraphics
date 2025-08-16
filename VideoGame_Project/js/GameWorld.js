@@ -1,4 +1,3 @@
-// GameWorld.js
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 
 import { HouseA } from '../houses/HouseA.js';
@@ -9,6 +8,11 @@ import { Chest } from './Chest.js';
 import { Enemy } from './Enemy.js';
 
 export class GameWorld {
+    /**
+     * @param {THREE.Scene} scene - La scena Three.js in cui costruire il mondo.
+     * @param {HTMLElement} healthBarContainer - Il container HTML per le barre della vita dei nemici.
+     * @param {object} weaponModels - L'oggetto contenente i modelli delle armi.
+     */
     constructor(scene, healthBarContainer, weaponModels) {
         this.scene = scene;
         this.houses = [];
@@ -51,9 +55,12 @@ export class GameWorld {
         };
 
         this.createHouses();
-        this.createEnemies();
+        this.spawnEnemies();
     }
 
+    /**
+     * Crea le case, le strade, il terreno e gli alberi nel mondo di gioco.
+     */
     createHouses() {
         this.createRoad(20, 100, 0, 0);
         this.createRoad(100, 20, 0, -40);
@@ -89,6 +96,11 @@ export class GameWorld {
         this.createChestsInHouse(this.housePositions.houseD, 2);
     }
 
+    /**
+     * Crea un numero specificato di forzieri in posizioni casuali di una casa.
+     * @param {THREE.Vector3[]} positionArray - L'array di posizioni disponibili per i forzieri.
+     * @param {number} numChests - Il numero di forzieri da creare.
+     */
     createChestsInHouse(positionArray, numChests) {
         const availablePositions = [...positionArray];
 
@@ -103,6 +115,14 @@ export class GameWorld {
         }
     }
 
+    /**
+     * Crea un albero e lo aggiunge alla scena.
+     * @param {THREE.Vector3} position - La posizione dell'albero.
+     * @param {number} trunkHeight - L'altezza del tronco.
+     * @param {number} trunkRadius - Il raggio del tronco.
+     * @param {number} foliageHeight - L'altezza del fogliame.
+     * @param {number} foliageRadius - Il raggio del fogliame.
+     */
     createTree(position, trunkHeight, trunkRadius, foliageHeight, foliageRadius) {
         const treeGroup = new THREE.Group();
         const trunkGeometry = new THREE.CylinderGeometry(trunkRadius, trunkRadius, trunkHeight, 8);
@@ -123,6 +143,9 @@ export class GameWorld {
         this.collidableObjects.push(trunk, foliage);
     }
 
+    /**
+     * Crea il terreno e lo aggiunge alla scena.
+     */
     createGround() {
         const groundGeometry = new THREE.BoxGeometry(200, 0.1, 200);
         const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x556B2F });
@@ -132,6 +155,13 @@ export class GameWorld {
         this.collidableObjects.push(ground);
     }
 
+    /**
+     * Crea una strada e la aggiunge alla scena.
+     * @param {number} width - La larghezza della strada.
+     * @param {number} depth - La profondità della strada.
+     * @param {number} positionX - La posizione X della strada.
+     * @param {number} positionZ - La posizione Z della strada.
+     */
     createRoad(width, depth, positionX, positionZ) {
         const roadGeometry = new THREE.BoxGeometry(width, 0.2, depth);
         const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
@@ -141,13 +171,52 @@ export class GameWorld {
         this.collidableObjects.push(road);
     }
 
-    createEnemies() {
+    /**
+     * Genera e aggiunge nemici al mondo di gioco.
+     */
+    spawnEnemies() {
         const enemy1 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-20, 1, -20));
         const enemy2 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(30, 1, 10));
         const enemy3 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-5, 1, -40));
 
         this.enemies.push(enemy1, enemy2, enemy3);
-
         this.collidableObjects.push(enemy1.mesh, enemy2.mesh, enemy3.mesh);
+    }
+
+    /**
+     * Aggiorna lo stato del mondo di gioco.
+     * Chiamato nel ciclo di animazione principale.
+     * @param {THREE.Camera} camera - La telecamera della scena.
+     * @param {THREE.WebGLRenderer} renderer - Il renderer Three.js.
+     */
+    update(camera, renderer) {
+        // Itera al contrario per rimuovere in modo sicuro gli elementi dall'array.
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const enemy = this.enemies[i];
+
+            // Aggiorna la barra della vita del nemico.
+            enemy.updateHealthBar(camera, renderer);
+
+            // Se il nemico è morto, rimuovilo dai nostri array.
+            if (!enemy.isAlive) {
+                // Rimuovi la mesh del nemico dall'array degli oggetti collidibili.
+                const collidableIndex = this.collidableObjects.indexOf(enemy.mesh);
+                if (collidableIndex > -1) {
+                    this.collidableObjects.splice(collidableIndex, 1);
+                }
+
+                // Rimuovi il nemico dall'array dei nemici.
+                this.enemies.splice(i, 1);
+            } else {
+                // Altrimenti, aggiorna il nemico (logica di movimento, ecc.).
+                enemy.update();
+            }
+        }
+
+        // Qui puoi aggiungere altri aggiornamenti, come gli oggetti collezionabili.
+        // Esempio:
+        // for (const item of this.collectibleItems) {
+        //     item.update();
+        // }
     }
 }

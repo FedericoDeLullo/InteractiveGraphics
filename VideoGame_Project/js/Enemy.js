@@ -45,7 +45,11 @@ export class Enemy {
         this.state = 'Idle';
         this.roamingTimer = 0;
         this.roamingDuration = 5; // Cambia direzione ogni 5 secondi
-        this.roamingDirection = new THREE.Vector3(0, 0, 0);
+
+        // CORREZIONE: Imposta una direzione casuale fin dall'inizio
+        const randomAngle = Math.random() * Math.PI * 2;
+        this.roamingDirection = new THREE.Vector3(Math.sin(randomAngle), 0, Math.cos(randomAngle));
+
         this.pursueRange = 20; // Raggio entro cui il nemico inizia a inseguire
         this.attackRange = 10; // Raggio entro cui il nemico si ferma e attacca
         this.minAttackDistance = 2; // NUOVO: Distanza minima per attaccare

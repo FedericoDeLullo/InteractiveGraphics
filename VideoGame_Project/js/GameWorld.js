@@ -12,8 +12,11 @@ export class GameWorld {
      * @param {THREE.Scene} scene - La scena Three.js in cui costruire il mondo.
      * @param {HTMLElement} healthBarContainer - Il container HTML per le barre della vita dei nemici.
      * @param {object} weaponModels - L'oggetto contenente i modelli delle armi.
+     * @param {THREE.Camera} playerCamera - La telecamera del giocatore.
+     * @param {Array} playerObjects - Gli oggetti collidibili del giocatore.
+     * @param {Function} playerDamageCallback - Funzione per infliggere danno al giocatore.
      */
-    constructor(scene, healthBarContainer, weaponModels) {
+    constructor(scene, healthBarContainer, weaponModels, playerCamera, playerObjects, playerDamageCallback) {
         this.scene = scene;
         this.houses = [];
         this.trees = [];
@@ -23,6 +26,10 @@ export class GameWorld {
         this.enemies = [];
         this.healthBarContainer = healthBarContainer;
         this.weaponModels = weaponModels;
+        this.playerCamera = playerCamera;
+        this.playerObjects = playerObjects;
+        this.playerDamageCallback = playerDamageCallback;
+        this.enemyProjectiles = []; // Aggiungi un array per i proiettili dei nemici
         this.housePositions = {
             houseA: [
                 new THREE.Vector3(-50.5, 10.2, -58),
@@ -174,9 +181,9 @@ export class GameWorld {
      * Genera e aggiunge nemici al mondo di gioco.
      */
     spawnEnemies() {
-        const enemy1 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-20, 1, -20));
-        const enemy2 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(30, 1, 10));
-        const enemy3 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-5, 1, -40));
+        const enemy1 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-20, 1, -20), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback);
+        const enemy2 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(30, 1, 10), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback);
+        const enemy3 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-5, 1, -40), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback);
 
         this.enemies.push(enemy1, enemy2, enemy3);
         this.collidableObjects.push(enemy1.mesh, enemy2.mesh, enemy3.mesh);
@@ -195,7 +202,7 @@ export class GameWorld {
             const enemy = this.enemies[i];
 
             // Aggiorna la logica di movimento e attacco del nemico
-            enemy.update(delta, playerPosition, this.collidableObjects);
+            enemy.update(delta, playerPosition, this.collidableObjects, this.playerHealth, this.playerDamageCallback);
 
             // Aggiorna la posizione della barra della vita del nemico
             enemy.updateHealthBar(camera, renderer);

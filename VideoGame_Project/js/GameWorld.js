@@ -81,10 +81,10 @@ export class GameWorld {
         this.createRoad(20, 100, -50, 0);
         this.createRoad(20, 100, 50, 0);
 
-        this.createTree(new THREE.Vector3(-25, 0, -20), 5, 1, 10, 5);
-        this.createTree(new THREE.Vector3(25, 0, -20), 5, 1, 10, 5);
-        this.createTree(new THREE.Vector3(-25, 0, 20), 5, 1, 10, 5);
-        this.createTree(new THREE.Vector3(25, 0, 20), 5, 1, 10, 5);
+        this.createTree(new THREE.Vector3(-25, 0, -20), 10, 1, 10, 5);
+        this.createTree(new THREE.Vector3(25, 0, -20), 10, 1, 10, 5);
+        this.createTree(new THREE.Vector3(-25, 0, 20), 10, 1, 10, 5);
+        this.createTree(new THREE.Vector3(25, 0, 20), 10, 1, 10, 5);
 
         this.createGround();
 

@@ -34,7 +34,7 @@ const direction = new THREE.Vector3();
 const raycaster = new THREE.Raycaster();
 const clock = new THREE.Clock();
 
-const playerSize = 2;
+const playerSize = 3;
 let playerHealth = 100;
 
 let crosshair = null;

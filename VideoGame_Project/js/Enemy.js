@@ -40,6 +40,7 @@ export class Enemy {
         this.lastAttackTime = 0;
         this.damage = 10;
         this.fireSound = new Audio('sounds/pistol.mp3');
+        this.deathSound = new Audio('sounds/body-smash.mp3'); // Aggiungi il suono di morte
 
         // Variabili per la logica di stato
         this.state = 'Idle';
@@ -64,10 +65,15 @@ export class Enemy {
         this.walkSpeed = 5; // Velocità dell'animazione di camminata
 
         // Riferimenti alle parti del modello per l'animazione
-        this.leftArm = new THREE.Object3D();
-        this.rightArm = new THREE.Object3D();
-        this.leftLeg = new THREE.Object3D();
-        this.rightLeg = new THREE.Object3D();
+        this.head = null;
+        this.leftArm = null;
+        this.rightArm = null;
+        this.leftLeg = null;
+        this.rightLeg = null;
+        this.gun = null;
+        this.gunLeft = null;
+
+        this.bodyParts = []; // Array per le parti del corpo da animare quando il nemico muore
 
         // NUOVE PROPRIETÀ: Posizione e rotazione delle pistole per ogni stato
         this.gunIdlePosition = new THREE.Vector3(0.5, -3, 0.5);
@@ -263,6 +269,7 @@ export class Enemy {
 
         if (this.health <= 0) {
             this.isAlive = false;
+            this.explode();
         }
     }
 
@@ -282,7 +289,9 @@ export class Enemy {
 
         // Crea il proiettile
         const projectileGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-        const projectileMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const projectileMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff0000
+        });
         const projectile = new THREE.Mesh(projectileGeometry, projectileMaterial);
 
         const enemyGroupPosition = new THREE.Vector3();
@@ -349,6 +358,65 @@ export class Enemy {
     }
 
     /**
+     * Smembra il modello del nemico in parti separate e applica forze casuali.
+     */
+    explode() {
+        // Riproduci il suono di smembramento
+        this.deathSound.currentTime = 0;
+        this.deathSound.play();
+
+        // Disassembla le parti del corpo
+        const partsToDetach = [
+            this.model,
+            this.head,
+            this.leftArm,
+            this.rightArm,
+            this.leftLeg,
+            this.rightLeg
+        ];
+
+        partsToDetach.forEach(part => {
+            if (part && part.parent) {
+                // Posiziona l'oggetto nella scena
+                const worldPosition = new THREE.Vector3();
+                part.getWorldPosition(worldPosition);
+
+                const worldRotation = new THREE.Quaternion();
+                part.getWorldQuaternion(worldRotation);
+
+                this.scene.attach(part);
+                part.position.copy(worldPosition);
+                part.rotation.setFromQuaternion(worldRotation);
+
+                // Applica una velocità casuale
+                const velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 10,
+                    Math.random() * 5 + 5,
+                    (Math.random() - 0.5) * 10
+                );
+                part.userData.velocity = velocity;
+
+                // Applica una rotazione casuale
+                const rotationSpeed = new THREE.Vector3(
+                    (Math.random() - 0.5) * 5,
+                    (Math.random() - 0.5) * 5,
+                    (Math.random() - 0.5) * 5
+                );
+                part.userData.rotationSpeed = rotationSpeed;
+                part.userData.lifeTimer = 0; // Timer per la rimozione
+
+                this.bodyParts.push(part);
+            }
+        });
+
+        // Rimuovi la hitbox e il gruppo del nemico
+        this.scene.remove(this.group);
+        if (this.healthBar) {
+            this.healthBar.style.display = 'none';
+        }
+    }
+
+    /**
      * Aggiorna lo stato del nemico ad ogni frame.
      * @param {number} delta - Il tempo trascorso dall'ultimo frame.
      * @param {THREE.Vector3} playerPosition - La posizione attuale del giocatore.
@@ -356,8 +424,48 @@ export class Enemy {
      */
     update(delta, playerPosition) {
         if (!this.isAlive) {
+            // Usa un ciclo all'indietro per rimuovere gli elementi in modo sicuro
+            for (let i = this.bodyParts.length - 1; i >= 0; i--) {
+                const part = this.bodyParts[i];
+
+                if (part.userData.lifeTimer >= 5) { // Rimuovi dopo 2 secondi
+                    this.scene.remove(part);
+                    this.bodyParts.splice(i, 1);
+                    continue;
+                }
+
+                part.userData.lifeTimer += delta;
+
+                // Applica gravità e movimento
+                if (part.userData.velocity) {
+                    part.position.addScaledVector(part.userData.velocity, delta);
+                    part.userData.velocity.y -= 9.8 * delta; // Gravità
+                }
+
+                // Applica rotazione
+                if (part.userData.rotationSpeed) {
+                    part.rotation.x += part.userData.rotationSpeed.x * delta;
+                    part.rotation.y += part.userData.rotationSpeed.y * delta;
+                    part.rotation.z += part.userData.rotationSpeed.z * delta;
+                }
+
+                // Controllo collisione con il terreno
+                this.raycaster.set(part.position, this.down);
+                const groundIntersects = this.raycaster.intersectObjects(this.collidableObjects, true);
+
+                if (groundIntersects.length > 0) {
+                    const distanceToGround = groundIntersects[0].distance;
+                    if (distanceToGround < 1.5) { // Se è vicino al terreno
+                        part.position.y += (1.5 - distanceToGround); // Sposta leggermente in su
+                        part.userData.velocity.y = -part.userData.velocity.y * 0.5; // Inverti la velocità Y (rimbalzo)
+                        part.userData.rotationSpeed.multiplyScalar(0.5); // Riduci la rotazione
+                    }
+                }
+            }
             return;
         }
+
+        // ... (resto della logica di update) ...
 
         // Aggiorna la posizione dei proiettili del nemico e controlla le collisioni
         const projectilesToRemove = [];

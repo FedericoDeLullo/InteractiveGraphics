@@ -1,5 +1,4 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
-
 import { HouseA } from '../houses/HouseA.js';
 import { HouseB } from '../houses/HouseB.js';
 import { HouseC } from '../houses/HouseC.js';
@@ -209,15 +208,8 @@ export class GameWorld {
             // Aggiorna la posizione della barra della vita del nemico
             enemy.updateHealthBar(camera, renderer);
 
-            if (!enemy.isAlive) {
-                // Rimuovi l'intero gruppo del nemico dalla scena, non solo il mesh
-                this.scene.remove(enemy.group);
-
-                // Rimuove l'elemento HTML della barra della vita
-                if (enemy.healthBar) {
-                    this.healthBarContainer.removeChild(enemy.healthBar);
-                }
-
+            // Se il nemico non è vivo e non ha parti del corpo in animazione, rimuovilo
+            if (!enemy.isAlive && enemy.bodyParts.length === 0) {
                 // Rimuove l'oggetto del nemico dall'array degli oggetti collidibili
                 const collidableIndex = this.collidableObjects.indexOf(enemy.mesh);
                 if (collidableIndex > -1) {

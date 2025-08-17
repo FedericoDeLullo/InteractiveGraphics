@@ -5,6 +5,7 @@ import { HouseC } from '../houses/HouseC.js';
 import { HouseD } from '../houses/HouseD.js';
 import { Chest } from './Chest.js';
 import { Enemy } from './Enemy.js';
+import { EnemyDeathManager } from './EnemyDeathManager.js'; // Aggiungi il nuovo import
 
 export class GameWorld {
     /**
@@ -28,7 +29,10 @@ export class GameWorld {
         this.playerCamera = playerCamera;
         this.playerObjects = playerObjects;
         this.playerDamageCallback = playerDamageCallback;
-        this.enemyProjectiles = []; // Aggiungi un array per i proiettili dei nemici
+        this.enemyProjectiles = [];
+        // Crea l'istanza del gestore della morte dei nemici
+        this.enemyDeathManager = new EnemyDeathManager(this.scene, this.collidableObjects);
+
         this.housePositions = {
             houseA: [
                 new THREE.Vector3(-50.5, 10.2, -58),
@@ -180,13 +184,13 @@ export class GameWorld {
      * Genera e aggiunge nemici al mondo di gioco.
      */
     spawnEnemies() {
-        const enemy1 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-20, 1, -20), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects);
-        const enemy2 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(30, 1, 10), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects);
-        const enemy3 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-5, 1, -40), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects);
+        // Passa l'istanza di enemyDeathManager al costruttore di Enemy
+        const enemy1 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-20, 1, -20), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager);
+        const enemy2 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(30, 1, 10), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager);
+        const enemy3 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-5, 1, -40), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager);
 
         this.enemies.push(enemy1, enemy2, enemy3);
 
-        // Aggiunge le mesh dei nemici all'array degli oggetti collidibili.
         this.collidableObjects.push(enemy1.mesh, enemy2.mesh, enemy3.mesh);
     }
 
@@ -198,25 +202,22 @@ export class GameWorld {
      * @param {THREE.WebGLRenderer} renderer - Il renderer Three.js.
      */
     update(delta, playerPosition, camera, renderer) {
-        // Usa un ciclo all'indietro per rimuovere i nemici morti senza rovinare l'iterazione
+        // Aggiorna la logica di esplosione nel manager esterno
+        this.enemyDeathManager.update(delta);
+
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
 
-            // Aggiorna la logica di movimento e attacco del nemico
             enemy.update(delta, playerPosition);
-
-            // Aggiorna la posizione della barra della vita del nemico
             enemy.updateHealthBar(camera, renderer);
 
-            // Se il nemico non è vivo e non ha parti del corpo in animazione, rimuovilo
-            if (!enemy.isAlive && enemy.bodyParts.length === 0) {
-                // Rimuove l'oggetto del nemico dall'array degli oggetti collidibili
+            // Se il nemico non è vivo e il gestore della morte non ha più parti da animare, rimuovilo
+            if (!enemy.isAlive && this.enemyDeathManager.activePartsCount === 0) {
                 const collidableIndex = this.collidableObjects.indexOf(enemy.mesh);
                 if (collidableIndex > -1) {
                     this.collidableObjects.splice(collidableIndex, 1);
                 }
 
-                // Rimuove il nemico dall'array dei nemici
                 this.enemies.splice(i, 1);
             }
         }

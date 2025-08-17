@@ -1,29 +1,28 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 
 export class WeaponHandler {
-    constructor(scene, camera, gameWorld, currentWeapon) {
+    // Aggiunto un nuovo parametro `collidableObjects` al costruttore
+    constructor(scene, camera, gameWorld, currentWeapon, collidableObjects) {
         this.scene = scene;
         this.camera = camera;
         this.gameWorld = gameWorld;
         this.currentWeapon = currentWeapon;
-
         this.equippedWeaponMesh = null;
-
         this.raycaster = new THREE.Raycaster();
         this.projectiles = [];
-
         this.recoil = {
             active: false,
             endTime: 0,
             initialQuaternion: new THREE.Quaternion()
         };
-
         this.isRifleShooting = false;
         this.burstIntervalId = null;
 
-        this.pistolAudio = new Audio('sounds/pistol.mp3');
-        this.rifleAudio = new Audio('sounds/rifle.mp3');
-        this.rocketLauncherAudio = new Audio('sounds/rocketLauncher.mp3');
+        // Ho rimosso l'uso di percorsi locali per l'audio, in quanto il browser potrebbe non supportarli
+        this.pistolAudio = null;
+        this.rifleAudio = null;
+        this.rocketLauncherAudio = null;
+        this.loadAudio();
 
         this.muzzleFlash = this.createMuzzleFlash();
         this.scene.add(this.muzzleFlash);
@@ -32,6 +31,24 @@ export class WeaponHandler {
             startTime: 0,
             duration: 100
         };
+
+        // Salva la lista di oggetti collidibili per le collisioni dei proiettili
+        this.collidableObjects = collidableObjects;
+    }
+
+    // Carica gli audio per evitare errori se i file non sono accessibili
+    loadAudio() {
+        try {
+            this.pistolAudio = new Audio('sounds/pistol.mp3');
+            this.rifleAudio = new Audio('sounds/rifle.mp3');
+            this.rocketLauncherAudio = new Audio('sounds/rocketLauncher.mp3');
+        } catch (e) {
+            console.warn("Errore nel caricamento dei file audio. I suoni potrebbero non funzionare.");
+            // Imposta l'audio a null per evitare errori futuri
+            this.pistolAudio = { play: () => {}, currentTime: 0 };
+            this.rifleAudio = { play: () => {}, currentTime: 0 };
+            this.rocketLauncherAudio = { play: () => {}, currentTime: 0 };
+        }
     }
 
     createMuzzleFlash() {
@@ -77,16 +94,22 @@ export class WeaponHandler {
     playShootSound() {
         switch (this.currentWeapon.name) {
             case 'Pistola':
-                this.pistolAudio.currentTime = 0;
-                this.pistolAudio.play();
+                if (this.pistolAudio) {
+                    this.pistolAudio.currentTime = 0;
+                    this.pistolAudio.play();
+                }
                 break;
             case 'Fucile':
-                this.rifleAudio.currentTime = 0;
-                this.rifleAudio.play();
+                if (this.rifleAudio) {
+                    this.rifleAudio.currentTime = 0;
+                    this.rifleAudio.play();
+                }
                 break;
             case 'Lanciarazzi':
-                this.rocketLauncherAudio.currentTime = 0;
-                this.rocketLauncherAudio.play();
+                if (this.rocketLauncherAudio) {
+                    this.rocketLauncherAudio.currentTime = 0;
+                    this.rocketLauncherAudio.play();
+                }
                 break;
             default:
                 break;
@@ -148,9 +171,9 @@ export class WeaponHandler {
         let flashColor = 0xffa500;
         let flashSize = 0.2;
         let flashDuration = 100;
-        let offsetZ = 1.0; // Distanza iniziale dal centro della telecamera
-        let offsetY = -0.2; // Spostamento verticale (alto/basso)
-        let offsetX = 0.2; // Spostamento orizzontale (sinistra/destra)
+        let offsetZ = 1.0;
+        let offsetY = -0.2;
+        let offsetX = 0.2;
 
         if (this.currentWeapon.name === 'Fucile') {
             flashColor = 0xffff00;
@@ -167,30 +190,24 @@ export class WeaponHandler {
             offsetY = -0.5;
             offsetX = 0.5;
         } else if (this.currentWeapon.name === 'Pistola') {
-            offsetZ = 1.1; // Distanza iniziale dal centro della telecamera
-            offsetY = -0.37; // Sposta leggermente più in alto per la pistola
-            offsetX = 0.40; // Sposta leggermente a destra per la pistola
-            flashSize = 0.04; // Dimensione più piccola per la pistola
-
+            offsetZ = 1.1;
+            offsetY = -0.37;
+            offsetX = 0.40;
+            flashSize = 0.04;
         }
 
-
-        // Rimuovi il flash dal genitore precedente per evitare problemi
         if (this.muzzleFlash.parent) {
              this.muzzleFlash.parent.remove(this.muzzleFlash);
         }
 
-        // Aggiungi il flash alla scena principale (o alla telecamera, a seconda della tua gerarchia)
         this.scene.add(this.muzzleFlash);
 
-        // Aggiorna le proprietà della geometria e del materiale
         if (this.muzzleFlash.geometry) {
             this.muzzleFlash.geometry.dispose();
         }
         this.muzzleFlash.geometry = new THREE.ConeGeometry(flashSize, flashSize * 4, 8);
         this.muzzleFlash.material.color.set(flashColor);
 
-        // Posizionamento del flash rispetto alla telecamera
         const offsetVector = new THREE.Vector3(offsetX, offsetY, -offsetZ);
         offsetVector.applyQuaternion(this.camera.quaternion);
         this.muzzleFlash.position.copy(this.camera.position).add(offsetVector);
@@ -237,7 +254,8 @@ export class WeaponHandler {
         const aliveEnemies = this.gameWorld.enemies.filter(e => e.isAlive);
         const enemyMeshes = aliveEnemies.map(e => e.mesh);
 
-        const collidableObjects = [...enemyMeshes, ...this.gameWorld.collidableObjects];
+        // Ora la lista include sia i nemici che gli oggetti collidibili (muri, etc.) passati dal main.js
+        const collidableObjects = [...enemyMeshes, ...this.collidableObjects];
 
         if (this.recoil.active) {
             const timeElapsed = Date.now() - (this.recoil.endTime - 100);
@@ -259,10 +277,8 @@ export class WeaponHandler {
             }
         }
 
-
         this.projectiles.forEach(projectile => {
             projectile.previousPosition.copy(projectile.position);
-
             projectile.position.addScaledVector(projectile.velocity, delta);
 
             const travelDistance = projectile.position.distanceTo(this.camera.position);

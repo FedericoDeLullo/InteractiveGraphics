@@ -23,7 +23,7 @@ let isCollecting = false;
 let isInventoryOpen = false;
 let isOpeningChest = false;
 let isGameOver = false;
-let isGameWon = false; // NUOVO: Flag per la vittoria
+let isGameWon = false;
 
 let isShooting = false;
 const attackCooldown = 0.1;
@@ -155,10 +155,16 @@ function init() {
     playerHitbox.name = 'playerHitbox';
     camera.add(playerHitbox);
 
+    // Crea il mondo di gioco e ottieni la lista degli oggetti collidibili (muri, terreno, etc.)
     gameWorld = new GameWorld(scene, enemyHealthBarContainer, weaponModels, camera, [playerHitbox], updatePlayerHealth);
+
+    // Crea un'unica lista di oggetti collidibili per il giocatore e i proiettili
+    const collidableObjects = [...gameWorld.collidableObjects];
+
     inventory = new Inventory('inventory-items');
     crosshair = document.getElementById('crosshair');
-    weaponHandler = new WeaponHandler(scene, camera, gameWorld, currentWeapon);
+    // Passa la lista unificata di collidableObjects a WeaponHandler
+    weaponHandler = new WeaponHandler(scene, camera, gameWorld, currentWeapon, collidableObjects);
 
     inventory.onDiscardCallback = (discardedItem) => {
         const playerPosition = controls.getObject().position.clone();

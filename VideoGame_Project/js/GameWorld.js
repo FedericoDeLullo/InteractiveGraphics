@@ -5,7 +5,7 @@ import { HouseC } from '../houses/HouseC.js';
 import { HouseD } from '../houses/HouseD.js';
 import { Chest } from './Chest.js';
 import { Enemy } from './Enemy.js';
-import { EnemyDeathManager } from './EnemyDeathManager.js'; // Aggiungi il nuovo import
+import { EnemyDeathManager } from './EnemyDeathManager.js';
 
 export class GameWorld {
     /**
@@ -20,7 +20,7 @@ export class GameWorld {
         this.scene = scene;
         this.houses = [];
         this.trees = [];
-        this.collidableObjects = [];
+        this.collidableObjects = []; // Contiene tutti gli oggetti solidi del mondo
         this.chests = [];
         this.collectibleItems = [];
         this.enemies = [];
@@ -29,7 +29,8 @@ export class GameWorld {
         this.playerCamera = playerCamera;
         this.playerObjects = playerObjects;
         this.playerDamageCallback = playerDamageCallback;
-        this.enemyProjectiles = [];
+        this.enemyProjectiles = []; // Array per i proiettili dei nemici
+
         // Crea l'istanza del gestore della morte dei nemici
         this.enemyDeathManager = new EnemyDeathManager(this.scene, this.collidableObjects);
 
@@ -184,10 +185,10 @@ export class GameWorld {
      * Genera e aggiunge nemici al mondo di gioco.
      */
     spawnEnemies() {
-        // Passa l'istanza di enemyDeathManager al costruttore di Enemy
-        const enemy1 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-20, 1, -20), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager);
-        const enemy2 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(30, 1, 10), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager);
-        const enemy3 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-5, 1, -40), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager);
+        // Passa l'istanza di enemyDeathManager e l'array dei proiettili al costruttore di Enemy
+        const enemy1 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-20, 1, -20), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager, this.enemyProjectiles);
+        const enemy2 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(30, 1, 10), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager, this.enemyProjectiles);
+        const enemy3 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-5, 1, -40), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager, this.enemyProjectiles);
 
         this.enemies.push(enemy1, enemy2, enemy3);
 
@@ -205,21 +206,54 @@ export class GameWorld {
         // Aggiorna la logica di esplosione nel manager esterno
         this.enemyDeathManager.update(delta);
 
+        // Aggiorna i nemici e le loro barre della vita
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
-
             enemy.update(delta, playerPosition);
             enemy.updateHealthBar(camera, renderer);
-
-            // Se il nemico non è vivo e il gestore della morte non ha più parti da animare, rimuovilo
             if (!enemy.isAlive && this.enemyDeathManager.activePartsCount === 0) {
                 const collidableIndex = this.collidableObjects.indexOf(enemy.mesh);
                 if (collidableIndex > -1) {
                     this.collidableObjects.splice(collidableIndex, 1);
                 }
-
                 this.enemies.splice(i, 1);
             }
         }
+
+        // Array per tenere traccia dei proiettili da rimuovere
+        const projectilesToRemove = [];
+
+        // Aggiorna e gestisce i proiettili dei nemici
+        this.enemyProjectiles.forEach((projectile, index) => {
+            const previousPosition = projectile.position.clone();
+            projectile.position.addScaledVector(projectile.velocity, delta);
+
+            // Controlla la collisione con il giocatore
+            const playerRaycaster = new THREE.Raycaster(previousPosition, projectile.velocity.clone().normalize(), 0, previousPosition.distanceTo(projectile.position));
+            const playerIntersects = playerRaycaster.intersectObjects(this.playerObjects, true);
+            if (playerIntersects.length > 0) {
+                this.playerDamageCallback(10); // Infligge 10 punti di danno al giocatore
+                projectilesToRemove.push(projectile);
+            }
+
+            // Controlla la collisione con muri, alberi, strade, ecc.
+            const worldRaycaster = new THREE.Raycaster(previousPosition, projectile.velocity.clone().normalize(), 0, previousPosition.distanceTo(projectile.position));
+            const worldIntersects = worldRaycaster.intersectObjects(this.collidableObjects, true);
+            if (worldIntersects.length > 0) {
+                projectilesToRemove.push(projectile);
+            }
+        });
+
+        // Rimuovi i proiettili che hanno colpito qualcosa o hanno superato la loro portata
+        projectilesToRemove.forEach(projectile => {
+            this.scene.remove(projectile);
+            const index = this.enemyProjectiles.indexOf(projectile);
+            if (index > -1) {
+                this.enemyProjectiles.splice(index, 1);
+            }
+            // Importante: libera la memoria
+            projectile.geometry.dispose();
+            projectile.material.dispose();
+        });
     }
 }

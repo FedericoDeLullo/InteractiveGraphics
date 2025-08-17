@@ -23,6 +23,7 @@ let isCollecting = false;
 let isInventoryOpen = false;
 let isOpeningChest = false;
 let isGameOver = false;
+let isGameWon = false; // NUOVO: Flag per la vittoria
 
 let isShooting = false;
 const attackCooldown = 0.1;
@@ -33,7 +34,7 @@ const direction = new THREE.Vector3();
 const raycaster = new THREE.Raycaster();
 const clock = new THREE.Clock();
 
-const playerSize = 2; // Dimensioni del personaggio come da tue impostazioni
+const playerSize = 2;
 let playerHealth = 100;
 
 let crosshair = null;
@@ -49,24 +50,23 @@ let currentWeapon = {
 let equippedWeaponMesh = null;
 let weaponHandler;
 
+// Riferimenti ai nuovi elementi DOM
+const victoryScreen = document.getElementById('victory-screen');
+const victoryRestartButton = document.getElementById('victory-restart-button');
+const victoryExitButton = document.getElementById('victory-exit-button');
+const gameOverScreen = document.getElementById('game-over-screen');
+const restartButton = document.getElementById('restart-button');
+const exitButton = document.getElementById('exit-button');
+const blocker = document.getElementById('blocker');
+const instructions = document.getElementById('instructions');
+
 function updatePlayerHealth(damage) {
     playerHealth = Math.max(0, playerHealth - damage);
     const healthBar = document.getElementById('player-health-bar-inner');
     if (healthBar) {
         healthBar.style.width = `${playerHealth}%`;
         if (playerHealth <= 0) {
-            // Mostra la schermata di Game Over
-            document.getElementById('game-over-screen').style.display = 'flex';
-            // Sblocca i controlli del puntatore per interagire con i bottoni
-            if (controls.isLocked) {
-                controls.unlock();
-            }
-            // Nascondi il mirino se visibile
-            if (crosshair) {
-                crosshair.classList.add('hidden');
-            }
-            // Aggiungi un blocco per impedire i movimenti e gli spari
-            isGameOver = true;
+            showGameOverScreen();
         }
     }
 }
@@ -260,9 +260,6 @@ function init() {
 
     controls = new PointerLockControls(camera, document.body);
 
-    const blocker = document.getElementById('blocker');
-    const instructions = document.getElementById('instructions');
-
     if (instructions && blocker) {
         instructions.addEventListener('click', () => {
             controls.lock();
@@ -274,7 +271,7 @@ function init() {
         });
 
         controls.addEventListener('unlock', () => {
-            if (!isInventoryOpen && !isGameOver) {
+            if (!isInventoryOpen && !isGameOver && !isGameWon) {
                 blocker.style.display = 'flex';
                 instructions.style.display = '';
             }
@@ -284,6 +281,7 @@ function init() {
     scene.add(controls.getObject());
 
     const onKeyDown = (event) => {
+        if (isGameOver || isGameWon) return; // Impedisce input dopo la fine del gioco
         switch (event.code) {
             case 'ArrowUp':
             case 'KeyW':
@@ -326,6 +324,7 @@ function init() {
     };
 
     const onKeyUp = (event) => {
+        if (isGameOver || isGameWon) return;
         switch (event.code) {
             case 'ArrowUp':
             case 'KeyW':
@@ -350,12 +349,14 @@ function init() {
     };
 
     const onMouseDown = (event) => {
+        if (isGameOver || isGameWon) return;
         if (event.button === 0 && controls.isLocked && !isInventoryOpen) {
             isShooting = true;
         }
     };
 
     const onMouseUp = (event) => {
+        if (isGameOver || isGameWon) return;
         if (event.button === 0) {
             isShooting = false;
         }
@@ -367,6 +368,7 @@ function init() {
     document.addEventListener('mouseup', onMouseUp);
 
     document.addEventListener('keydown', (event) => {
+        if (isGameOver || isGameWon) return;
         if (event.code === 'KeyX' && controls.isLocked) {
             const playerPos = controls.getObject().position;
             for (const chest of gameWorld.chests) {
@@ -386,18 +388,28 @@ function init() {
     });
 
     // Gestori di eventi per i pulsanti di Game Over
-    const restartButton = document.getElementById('restart-button');
-    const exitButton = document.getElementById('exit-button');
-
     if (restartButton) {
         restartButton.addEventListener('click', () => {
-            location.reload(); // Ricarica la pagina per riavviare
+            location.reload();
         });
     }
 
     if (exitButton) {
         exitButton.addEventListener('click', () => {
-            window.close(); // Chiude la finestra del browser
+            window.close();
+        });
+    }
+
+    // NUOVO: Gestori di eventi per i pulsanti di vittoria
+    if (victoryRestartButton) {
+        victoryRestartButton.addEventListener('click', () => {
+            location.reload();
+        });
+    }
+
+    if (victoryExitButton) {
+        victoryExitButton.addEventListener('click', () => {
+            window.close();
         });
     }
 
@@ -408,18 +420,23 @@ function init() {
 function animate() {
     requestAnimationFrame(animate);
 
-    if (isGameOver) {
-        return; // Interrompe il ciclo di animazione se il gioco è finito
+    if (isGameOver || isGameWon) {
+        return;
     }
 
     const delta = clock.getDelta();
     const elapsedTime = clock.getElapsedTime();
     const playerHeight = playerSize;
 
+    // NUOVO: Logica di controllo della vittoria
+    if (gameWorld.enemies.length === 0) {
+        showVictoryScreen();
+        return;
+    }
+
     if (controls.isLocked && !isInventoryOpen) {
         const acceleration = 500.0;
         const drag = 20.0;
-
 
         velocity.x -= velocity.x * drag * delta;
         velocity.z -= velocity.z * drag * delta;
@@ -501,7 +518,6 @@ function animate() {
             }
         }
 
-        // Chiamata al metodo di aggiornamento in GameWorld per gestire i nemici
         gameWorld.update(delta, controls.getObject().position, camera, renderer);
     }
 
@@ -570,4 +586,29 @@ function animate() {
     }
     renderer.render(scene, camera);
 }
+
+function showGameOverScreen() {
+    isGameOver = true;
+    gameOverScreen.style.display = 'flex';
+    blocker.style.display = 'flex';
+    if (controls.isLocked) {
+        controls.unlock();
+    }
+    if (crosshair) {
+        crosshair.classList.add('hidden');
+    }
+}
+
+function showVictoryScreen() {
+    isGameWon = true;
+    victoryScreen.style.display = 'flex';
+    blocker.style.display = 'flex';
+    if (controls.isLocked) {
+        controls.unlock();
+    }
+    if (crosshair) {
+        crosshair.classList.add('hidden');
+    }
+}
+
 loadModels();

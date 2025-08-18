@@ -7,7 +7,7 @@ const createStairs = (parent, collidableObjects, floorHeight, houseDepth, startP
     const stairHeight = 1.2;
     // Calcola il numero di gradini necessari
     // Rimosso il "- 9" dal codice originale per un calcolo più preciso
-const numSteps = floorHeight / stairHeight - 9;
+    const numSteps = floorHeight / stairHeight - 9;
     const stairMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
 
     for (let i = 0; i < numSteps; i++) {
@@ -75,12 +75,12 @@ export class HouseC {
 
         createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight + 1, -(houseDepth / 2));
         createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight - 21, -(houseDepth / 2));
-        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, houseWidth - 31 , floorHeight - 10 , -(houseDepth / 2));
+        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, houseWidth - 31, floorHeight - 10, -(houseDepth / 2));
         createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, -(houseDepth / 2));
         createWall(houseWidth / 3 - 2, floorHeight, wallThickness, -(houseWidth / 4 - 12.5), floorHeight / 2, -(houseDepth / 2));
         createWall(houseWidth, floorHeight / 4, wallThickness, houseWidth - 50, floorHeight - 10, -(houseDepth / 2));
         createWall(houseWidth, floorHeight, wallThickness, 0, floorHeight / 2, houseDepth / 2);
-        createWall(wallThickness, floorHeight / 2 + 2, houseDepth , houseWidth - 25, floorHeight / 2 + 5, -(houseDepth - 40));
+        createWall(wallThickness, floorHeight / 2 + 2, houseDepth, houseWidth - 25, floorHeight / 2 + 5, -(houseDepth - 40));
         createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, houseWidth - 25, floorHeight - 20, houseDepth - 37);
         createWall(wallThickness, floorHeight, houseDepth, -(houseWidth / 2), floorHeight / 2, 0);
 
@@ -91,27 +91,27 @@ export class HouseC {
         houseGroup.add(secondFloor);
         this.collidableObjects.push(secondFloor);
 
-        const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth /2), floorMaterial);
+        const thirdFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth / 2), floorMaterial);
         thirdFloor.position.y = floorHeight / 2;
         thirdFloor.position.z = -(houseDepth / 2 - 30);
         houseGroup.add(thirdFloor);
         this.collidableObjects.push(thirdFloor);
 
-        const lateralWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 3 + 3, wallThickness, houseDepth ), floorMaterial);
+        const lateralWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 3 + 3, wallThickness, houseDepth), floorMaterial);
         lateralWall.position.x = houseWidth / 2 - 10;
         lateralWall.position.y = floorHeight / 2;
         lateralWall.position.z = -(houseDepth / 2 - 20);
         houseGroup.add(lateralWall);
         this.collidableObjects.push(lateralWall);
 
-        const upperWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 + 1 , wallThickness, houseDepth ), floorMaterial);
+        const upperWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 + 1, wallThickness, houseDepth), floorMaterial);
         upperWall.position.x = houseWidth / 2 - 37;
         upperWall.position.y = floorHeight / 2;
         upperWall.position.z = -(houseDepth / 2 - 20);
         houseGroup.add(upperWall);
         this.collidableObjects.push(upperWall);
 
-        const smallWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 - 1 , wallThickness, houseDepth / 4), floorMaterial);
+        const smallWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 2 - 1, wallThickness, houseDepth / 4), floorMaterial);
         smallWall.position.x = houseWidth / 2 - 20;
         smallWall.position.y = floorHeight / 2;
         smallWall.position.z = -(houseDepth / 2 - 5);
@@ -142,8 +142,8 @@ export class HouseC {
 
         const wallHeight = floorHeight / 2;
         const wallYPosition = floorHeight / 2 + 5;
-        createWall(houseWidth / 3 - 0.5 , wallHeight, wallThickness, 13.5, wallYPosition, 0, specialWallMaterial);
-        createWall(houseWidth / 2 - 5 , wallHeight, wallThickness, -10, wallYPosition, 0, specialWallMaterial);
+        createWall(houseWidth / 3 - 0.5, wallHeight, wallThickness, 13.5, wallYPosition, 0, specialWallMaterial);
+        createWall(houseWidth / 2 - 5, wallHeight, wallThickness, -10, wallYPosition, 0, specialWallMaterial);
         createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
         createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
         createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMaterial);
@@ -159,6 +159,7 @@ export class HouseC {
         table1.position.set(10, 0, 10);
         table1.scale.set(2, 2, 2);
         houseGroup.add(table1);
+        this.collidableObjects.push(table1);
 
         // Aggiungo il secondo tavolo e sedie
         const table2 = new Furniture();
@@ -168,6 +169,7 @@ export class HouseC {
         table2.position.set(-10, 0, 10);
         table2.scale.set(2, 2, 2);
         houseGroup.add(table2);
+        this.collidableObjects.push(table2);
 
         // Aggiungo il primo divano
         const sofa1 = new Furniture();
@@ -177,6 +179,7 @@ export class HouseC {
         sofa1.position.set(16, 0, 1.5);
         sofa1.scale.set(2, 2, 2);
         houseGroup.add(sofa1);
+        this.collidableObjects.push(sofa1);
 
         // Aggiungo il secondo divano
         const sofa2 = new Furniture();
@@ -186,6 +189,7 @@ export class HouseC {
         sofa2.position.set(-16, 0, 1.5);
         sofa2.scale.set(2, 2, 2);
         houseGroup.add(sofa2);
+        this.collidableObjects.push(sofa2);
 
         // Aggiungo un letto
         const bedFurniture = new Furniture();
@@ -195,6 +199,7 @@ export class HouseC {
         bedFurniture.position.set(-22, 10, -15);
         bedFurniture.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(bedFurniture);
+        this.collidableObjects.push(bedFurniture);
 
         // Aggiungo un altro letto
         const bedFurniture1 = new Furniture();
@@ -204,6 +209,7 @@ export class HouseC {
         bedFurniture1.position.set(22, 10, -15);
         bedFurniture1.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(bedFurniture1);
+        this.collidableObjects.push(bedFurniture1);
 
 
         // Aggiungo una scrivania piano terra
@@ -214,6 +220,7 @@ export class HouseC {
         deskFurniture.position.set(-16, 0, -2);
         deskFurniture.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(deskFurniture);
+        this.collidableObjects.push(deskFurniture);
 
         // Aggiungo una scrivania secondo piano a sinistra
         const deskFurniture1 = new Furniture();
@@ -223,6 +230,7 @@ export class HouseC {
         deskFurniture1.position.set(21, 10, 18);
         deskFurniture1.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(deskFurniture1);
+        this.collidableObjects.push(deskFurniture1);
 
 
         // Aggiungo una scrivania secondo piano a destra
@@ -233,7 +241,7 @@ export class HouseC {
         deskFurniture2.position.set(-21, 10, 18);
         deskFurniture2.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(deskFurniture2);
-
+        this.collidableObjects.push(deskFurniture2);
 
         this.scene.add(houseGroup);
         return houseGroup;

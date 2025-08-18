@@ -155,6 +155,7 @@ export class HouseB {
         table1.position.set(10, 0, -10);
         table1.scale.set(2, 2, 2);
         houseGroup.add(table1);
+        this.collidableObjects.push(table1);
 
         // Aggiungo il secondo tavolo e sedie specchiato
         const table2 = new Furniture();
@@ -164,6 +165,7 @@ export class HouseB {
         table2.position.set(-10, 0, -10);
         table2.scale.set(2, 2, 2);
         houseGroup.add(table2);
+        this.collidableObjects.push(table2);
 
         // Aggiungo il primo divano specchiato
         const sofa1 = new Furniture();
@@ -173,6 +175,7 @@ export class HouseB {
         sofa1.position.set(22, 0, -18.5);
         sofa1.scale.set(2, 2, 2);
         houseGroup.add(sofa1);
+        this.collidableObjects.push(sofa1);
 
         // Aggiungo il secondo divano specchiato
         const sofa2 = new Furniture();
@@ -182,6 +185,7 @@ export class HouseB {
         sofa2.position.set(-22, 0, -18.5);
         sofa2.scale.set(2, 2, 2);
         houseGroup.add(sofa2);
+        this.collidableObjects.push(sofa2);
 
         // Aggiungo un letto specchiato
         const bedFurniture = new Furniture();
@@ -191,6 +195,7 @@ export class HouseB {
         bedFurniture.position.set(-22, 10, -15);
         bedFurniture.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(bedFurniture);
+        this.collidableObjects.push(bedFurniture);
 
         // Aggiungo un altro letto specchiato
         const bedFurniture1 = new Furniture();
@@ -200,6 +205,7 @@ export class HouseB {
         bedFurniture1.position.set(22, 10, -15);
         bedFurniture1.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(bedFurniture1);
+        this.collidableObjects.push(bedFurniture1);
 
 
         // Aggiungo una scrivania piano terra specchiata
@@ -210,6 +216,7 @@ export class HouseB {
         deskFurniture.position.set(21, 0, 18);
         deskFurniture.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(deskFurniture);
+        this.collidableObjects.push(deskFurniture);
 
         // Aggiungo una scrivania secondo piano a sinistra specchiata
         const deskFurniture1 = new Furniture();
@@ -219,6 +226,7 @@ export class HouseB {
         deskFurniture1.position.set(21, 10, 18);
         deskFurniture1.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(deskFurniture1);
+        this.collidableObjects.push(deskFurniture1);
 
 
         // Aggiungo una scrivania secondo piano a destra specchiata
@@ -229,7 +237,7 @@ export class HouseB {
         deskFurniture2.position.set(-21, 10, 18);
         deskFurniture2.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(deskFurniture2);
-
+        this.collidableObjects.push(deskFurniture2);
 
         this.scene.add(houseGroup);
         return houseGroup;

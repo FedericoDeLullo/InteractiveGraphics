@@ -24,7 +24,6 @@ export class Enemy {
         this.maxHealth = health;
         this.health = health;
         this.isAlive = true;
-        this.model = null;
 
         // Riferimenti esterni per l'interazione con il mondo di gioco
         this.playerCamera = playerCamera;
@@ -32,7 +31,7 @@ export class Enemy {
         this.collidableObjects = collidableObjects;
         this.playerDamageCallback = playerDamageCallback;
         this.enemyDeathManager = enemyDeathManager;
-        this.enemyProjectiles = enemyProjectiles; // Riferimento all'array globale dei proiettili
+        this.enemyProjectiles = enemyProjectiles;
 
         // Raycaster per la rilevazione di collisioni e la posizione sul terreno
         this.raycaster = new THREE.Raycaster();
@@ -43,6 +42,7 @@ export class Enemy {
         // Gruppo principale per il nemico, che contiene il modello e l'hitbox
         this.group = new THREE.Group();
         this.group.position.copy(position);
+        this.group.scale.set(0.6, 0.6, 0.6); // Utilizza l'impostazione fornita in precedenza
         this.scene.add(this.group);
 
         // Parametri di movimento e attacco
@@ -53,12 +53,11 @@ export class Enemy {
         this.damage = 10;
         this.fireSound = new Audio('sounds/pistol.mp3');
 
-        // Stati del nemico: 'Idle', 'Pursue', 'Attack', 'Evade'
+        // Stati del nemico e variabili per il roaming
         this.state = 'Idle';
         this.roamingTimer = 0;
         this.roamingDuration = 5;
-        const randomAngle = Math.random() * Math.PI * 2;
-        this.roamingDirection = new THREE.Vector3(Math.sin(randomAngle), 0, Math.cos(randomAngle));
+        this.roamingDirection = this.getRandomDirection();
 
         // Raggi di rilevamento e attacco
         this.pursueRange = 20;
@@ -70,6 +69,7 @@ export class Enemy {
         this.walkSpeed = 5;
 
         // Parti del modello 3D
+        this.model = null;
         this.head = null;
         this.leftArm = null;
         this.rightArm = null;
@@ -77,15 +77,26 @@ export class Enemy {
         this.rightLeg = null;
         this.gun = null;
         this.gunLeft = null;
+
+        // Punti di riferimento per la pistola
         this.gunIdlePosition = new THREE.Vector3(0.5, -3, 0.5);
         this.gunIdleRotation = new THREE.Euler(Math.PI / 2, 0, 0);
         this.gunPursuePosition = new THREE.Vector3(0.1, -2.5, 0.8);
         this.gunPursueRotation = new THREE.Euler(Math.PI / 2, 0, 0);
 
-        // Inizializzazione del modello e della barra della salute
+        // Inizializzazione del nemico
         this.createEnemyModel();
         this.createEnemyHitbox();
         this.createHealthBar(healthBarContainer);
+    }
+
+    /**
+     * Genera una direzione casuale per il roaming.
+     * @returns {THREE.Vector3} Una direzione casuale normalizzata.
+     */
+    getRandomDirection() {
+        const randomAngle = Math.random() * Math.PI * 2;
+        return new THREE.Vector3(Math.sin(randomAngle), 0, Math.cos(randomAngle)).normalize();
     }
 
     /**
@@ -119,7 +130,34 @@ export class Enemy {
         this.head.position.y = 3.5;
         this.model.add(this.head);
 
-        // Occhi e naso
+        // Occhi, naso e capelli
+        this.createFaceParts();
+        this.createHair();
+
+        // Braccia e gambe
+        const armGeometry = new THREE.BoxGeometry(1, 4, 1);
+        const legGeometry = new THREE.BoxGeometry(1, 4, 1);
+        const armMaterial = new THREE.MeshStandardMaterial({ color: 0x696969 });
+        const legMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
+        const handFootMaterial = new THREE.MeshStandardMaterial({ color: 0x4B4B4B });
+
+        this.leftArm = this.createLimb(armGeometry, armMaterial, new THREE.Vector3(-2, 0, 0), handFootMaterial, 'hand');
+        this.rightArm = this.createLimb(armGeometry, armMaterial, new THREE.Vector3(2, 0, 0), handFootMaterial, 'hand');
+        this.leftLeg = this.createLimb(legGeometry, legMaterial, new THREE.Vector3(-0.7, -4.5, 0), handFootMaterial, 'foot');
+        this.rightLeg = this.createLimb(legGeometry, legMaterial, new THREE.Vector3(0.7, -4.5, 0), handFootMaterial, 'foot');
+
+        this.model.add(this.leftArm, this.rightArm, this.leftLeg, this.rightLeg);
+
+        // Carica e aggiunge la pistola
+        this.loadGunModel();
+
+        this.group.add(this.model);
+    }
+
+    /**
+     * Crea e aggiunge gli elementi del viso (occhi, naso) alla testa del nemico.
+     */
+    createFaceParts() {
         const eyeGeometry = new THREE.SphereGeometry(0.2, 16, 16);
         const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
         const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
@@ -134,8 +172,12 @@ export class Enemy {
         nose.position.set(0, 0, 1.4);
         nose.rotation.x = Math.PI / 2;
         this.head.add(nose);
+    }
 
-        // Capelli
+    /**
+     * Crea e aggiunge gli elementi dei capelli alla testa del nemico.
+     */
+    createHair() {
         const hairMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
         const frontHair = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 1.5), hairMaterial);
         frontHair.position.set(0, 1.5, 0.8);
@@ -151,48 +193,33 @@ export class Enemy {
         sideHairRight.position.set(1.3, 1, -0.5);
         sideHairRight.rotation.z = -Math.PI / 4;
         this.head.add(sideHairRight);
+    }
 
-        // Braccia e gambe
-        const armGeometry = new THREE.BoxGeometry(1, 4, 1);
-        const armMaterial = new THREE.MeshStandardMaterial({ color: 0x696969 });
-        this.leftArm = new THREE.Mesh(armGeometry, armMaterial);
-        this.leftArm.position.set(-2, 0, 0);
-        this.model.add(this.leftArm);
+    /**
+     * Crea un arto (braccio o gamba) con una mano/piede.
+     * @param {THREE.BufferGeometry} limbGeometry - Geometria dell'arto.
+     * @param {THREE.Material} limbMaterial - Materiale dell'arto.
+     * @param {THREE.Vector3} position - Posizione dell'arto rispetto al corpo.
+     * @param {THREE.Material} handFootMaterial - Materiale per la mano/piede.
+     * @param {string} type - Tipo di arto ('hand' o 'foot').
+     * @returns {THREE.Mesh} Il mesh dell'arto completo.
+     */
+    createLimb(limbGeometry, limbMaterial, position, handFootMaterial, type) {
+        const limb = new THREE.Mesh(limbGeometry, limbMaterial);
+        limb.position.copy(position);
 
-        this.rightArm = new THREE.Mesh(armGeometry, armMaterial);
-        this.rightArm.position.set(2, 0, 0);
-        this.model.add(this.rightArm);
+        const extremityGeometry = type === 'hand' ? new THREE.SphereGeometry(0.5, 16, 16) : new THREE.SphereGeometry(0.7, 16, 16);
+        const extremity = new THREE.Mesh(extremityGeometry, handFootMaterial);
+        extremity.position.y = -2;
+        limb.add(extremity);
 
-        const legGeometry = new THREE.BoxGeometry(1, 4, 1);
-        const legMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
-        this.leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-        this.leftLeg.position.set(-0.7, -4.5, 0);
-        this.model.add(this.leftLeg);
+        return limb;
+    }
 
-        this.rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-        this.rightLeg.position.set(0.7, -4.5, 0);
-        this.model.add(this.rightLeg);
-
-        // Mani e piedi
-        const handGeometry = new THREE.SphereGeometry(0.5, 16, 16);
-        const handMaterial = new THREE.MeshStandardMaterial({ color: 0x4B4B4B });
-        const leftHand = new THREE.Mesh(handGeometry, handMaterial);
-        leftHand.position.y = -2;
-        this.leftArm.add(leftHand);
-        const rightHand = new THREE.Mesh(handGeometry, handMaterial);
-        rightHand.position.y = -2;
-        this.rightArm.add(rightHand);
-
-        const footGeometry = new THREE.SphereGeometry(0.7, 16, 16);
-        const footMaterial = new THREE.MeshStandardMaterial({ color: 0x4B4B4B });
-        const leftFoot = new THREE.Mesh(footGeometry, footMaterial);
-        leftFoot.position.y = -2;
-        this.leftLeg.add(leftFoot);
-        const rightFoot = new THREE.Mesh(footGeometry, footMaterial);
-        rightFoot.position.y = -2;
-        this.rightLeg.add(rightFoot);
-
-        // Carica il modello della pistola e lo aggiunge alle mani
+    /**
+     * Carica il modello GLTF della pistola e lo aggiunge alle braccia.
+     */
+    loadGunModel() {
         const loader = new GLTFLoader();
         loader.load(
             'models/pistol.glb',
@@ -209,9 +236,6 @@ export class Enemy {
                 console.error('An error occurred while loading the gun model:', error);
             }
         );
-
-        this.group.add(this.model);
-        this.group.scale.set(0.6, 0.6, 0.6); // Usa l'impostazione che mi hai fornito
     }
 
     /**
@@ -267,7 +291,6 @@ export class Enemy {
 
     /**
      * Crea e spara un proiettile verso il giocatore.
-     * Il proiettile viene aggiunto all'array globale `enemyProjectiles`.
      * @param {THREE.Vector3} playerPosition - La posizione attuale del giocatore.
      */
     shoot(playerPosition) {
@@ -292,7 +315,6 @@ export class Enemy {
         projectile.velocity = direction.multiplyScalar(30);
         projectile.damage = this.damage;
 
-        // Aggiunge il proiettile alla scena e all'array globale
         this.scene.add(projectile);
         this.enemyProjectiles.push(projectile);
     }
@@ -331,23 +353,31 @@ export class Enemy {
     /**
      * Anima il movimento delle gambe del nemico.
      * @param {number} delta - Il tempo trascorso dall'ultimo frame.
+     * @param {number} direction - 1 per avanti, -1 per indietro.
      */
-    animateLegs(delta) {
+    animateLimbs(delta, direction = 1) {
         this.walkCycle += this.walkSpeed * delta;
-        const legSwing = Math.sin(this.walkCycle) * 0.5;
-        this.leftLeg.rotation.x = -legSwing;
-        this.rightLeg.rotation.x = legSwing;
+        const swing = Math.sin(this.walkCycle) * 0.5 * direction;
+        this.leftLeg.rotation.x = -swing;
+        this.rightLeg.rotation.x = swing;
+        this.leftArm.rotation.x = swing;
+        this.rightArm.rotation.x = -swing;
     }
 
     /**
-     * Anima il movimento delle braccia del nemico.
-     * @param {number} delta - Il tempo trascorso dall'ultimo frame.
+     * Aggiorna la posizione e la rotazione delle pistole in base allo stato del nemico.
      */
-    animateArms(delta) {
-        this.walkCycle += this.walkSpeed * delta;
-        const armSwing = Math.sin(this.walkCycle) * 0.5;
-        this.leftArm.rotation.x = armSwing;
-        this.rightArm.rotation.x = -armSwing;
+    updateGunPosition() {
+        if (!this.gun || !this.gunLeft) return;
+
+        const isAttacking = this.state === 'Attack' || this.state === 'Pursue';
+        const position = isAttacking ? this.gunPursuePosition : this.gunIdlePosition;
+        const rotation = isAttacking ? this.gunPursueRotation : this.gunIdleRotation;
+
+        this.gun.position.copy(position);
+        this.gun.rotation.copy(rotation);
+        this.gunLeft.position.set(-position.x, position.y, position.z);
+        this.gunLeft.rotation.copy(rotation);
     }
 
     /**
@@ -371,7 +401,6 @@ export class Enemy {
 
         // Determina lo stato del nemico in base alla distanza dal giocatore
         const distanceToPlayer = this.group.position.distanceTo(playerPosition);
-        let direction = new THREE.Vector3();
         if (distanceToPlayer <= this.minAttackDistance) {
             this.state = 'Evade';
         } else if (distanceToPlayer <= this.attackRange) {
@@ -382,33 +411,22 @@ export class Enemy {
             this.state = 'Idle';
         }
 
+        let direction = new THREE.Vector3();
+
         // Esegue le azioni appropriate per ogni stato
         switch (this.state) {
             case 'Idle':
-                // Muove le braccia e le gambe come se stesse camminando casualmente
-                this.animateLegs(delta);
-                this.animateArms(delta);
-
-                // Ripristina la posizione e rotazione della pistola in stato di riposo
-                if (this.gun && this.gunLeft) {
-                    this.gun.position.copy(this.gunIdlePosition);
-                    this.gun.rotation.copy(this.gunIdleRotation);
-                    this.gunLeft.position.set(-this.gunIdlePosition.x, this.gunIdlePosition.y, this.gunIdlePosition.z);
-                    this.gunLeft.rotation.copy(this.gunIdleRotation);
-                }
-
+                this.animateLimbs(delta);
                 this.roamingTimer += delta;
                 if (this.roamingTimer >= this.roamingDuration) {
                     this.roamingTimer = 0;
-                    const newRandomAngle = Math.random() * Math.PI * 2;
-                    this.roamingDirection.set(Math.sin(newRandomAngle), 0, Math.cos(newRandomAngle));
+                    this.roamingDirection = this.getRandomDirection();
                 }
 
                 this.movementRaycaster.set(this.group.position, this.roamingDirection);
                 const idleIntersects = this.movementRaycaster.intersectObjects(this.collidableObjects, true);
                 if (idleIntersects.length > 0 && idleIntersects[0].distance < this.collisionCheckDistance) {
-                    const newRandomAngle = Math.random() * Math.PI * 2;
-                    this.roamingDirection.set(Math.sin(newRandomAngle), 0, Math.cos(newRandomAngle));
+                    this.roamingDirection = this.getRandomDirection();
                 } else {
                     this.group.position.addScaledVector(this.roamingDirection, this.speed * delta);
                 }
@@ -416,84 +434,51 @@ export class Enemy {
                 break;
 
             case 'Pursue':
-                // Muove le braccia e le gambe come se stesse correndo
-                this.animateLegs(delta);
-
-                // Posiziona le pistole per mirare al giocatore
-                if (this.gun && this.gunLeft) {
-                    this.gun.position.copy(this.gunPursuePosition);
-                    this.gun.rotation.copy(this.gunPursueRotation);
-                    this.gunLeft.position.set(-this.gunPursuePosition.x, this.gunPursuePosition.y, this.gunPursuePosition.z);
-                    this.gunLeft.rotation.copy(this.gunPursueRotation);
-                }
-
-                // Si muove verso il giocatore
-                const pursueSpeed = this.pursueSpeed;
+                this.animateLimbs(delta);
                 direction.subVectors(playerPosition, this.group.position).normalize();
                 this.movementRaycaster.set(this.group.position, direction);
                 const pursueIntersects = this.movementRaycaster.intersectObjects(this.collidableObjects, true);
                 if (!(pursueIntersects.length > 0 && pursueIntersects[0].distance < this.collisionCheckDistance)) {
-                    this.group.position.addScaledVector(direction, pursueSpeed * delta);
+                    this.group.position.addScaledVector(direction, this.pursueSpeed * delta);
                 }
-
-                // Ruota per guardare il giocatore e alza le braccia per mirare
                 this.group.lookAt(playerPosition.x, this.group.position.y, playerPosition.z);
-                const rightArmWorldPosition = new THREE.Vector3();
-                this.rightArm.getWorldPosition(rightArmWorldPosition);
-                const aimingVector = new THREE.Vector3().subVectors(playerPosition, rightArmWorldPosition).normalize();
-                const aimingAngleX = Math.atan2(aimingVector.y, Math.sqrt(aimingVector.x * aimingVector.x + aimingVector.z * aimingVector.z));
-                this.rightArm.rotation.x = aimingAngleX - Math.PI / 2;
-                this.rightArm.rotation.z = 0;
-                this.leftArm.rotation.x = aimingAngleX - Math.PI / 2;
-                this.leftArm.rotation.z = 0;
                 break;
 
             case 'Attack':
-                // Ferma il movimento delle gambe e blocca le braccia per l'attacco
+                // Ferma il movimento, ma continua a guardare il giocatore e spara
                 this.leftLeg.rotation.x = 0;
                 this.rightLeg.rotation.x = 0;
                 this.leftArm.rotation.x = 0;
                 this.rightArm.rotation.x = 0;
-
-                // Ruota per guardare il giocatore
                 this.group.lookAt(playerPosition.x, this.group.position.y, playerPosition.z);
-
-                // Aggiorna la posizione e rotazione della pistola
-                if (this.gun && this.gunLeft) {
-                    this.gun.position.copy(this.gunPursuePosition);
-                    this.gun.rotation.copy(this.gunPursueRotation);
-                    this.gunLeft.position.set(-this.gunPursuePosition.x, this.gunPursuePosition.y, this.gunPursuePosition.z);
-                    this.gunLeft.rotation.copy(this.gunPursueRotation);
-                }
-
-                // Alza le braccia per mirare e spara
-                const rightArmWorldPositionAttack = new THREE.Vector3();
-                this.rightArm.getWorldPosition(rightArmWorldPositionAttack);
-                const aimingVectorAttack = new THREE.Vector3().subVectors(playerPosition, rightArmWorldPositionAttack).normalize();
-                const aimingAngleXAttack = Math.atan2(aimingVectorAttack.y, Math.sqrt(aimingVectorAttack.x * aimingVectorAttack.x + aimingVectorAttack.z * aimingVectorAttack.z));
-                this.rightArm.rotation.x = aimingAngleXAttack - Math.PI / 2;
-                this.rightArm.rotation.z = 0;
-                this.leftArm.rotation.x = aimingAngleXAttack - Math.PI / 2;
-                this.leftArm.rotation.z = 0;
                 this.shoot(playerPosition);
                 break;
 
             case 'Evade':
-                // Muove le braccia e le gambe
-                this.animateLegs(delta);
-                this.animateArms(delta);
-
-                // Si allontana dal giocatore
+                this.animateLimbs(delta, -1); // Anima camminata all'indietro
                 direction.subVectors(this.group.position, playerPosition).normalize();
                 this.movementRaycaster.set(this.group.position, direction);
                 const evadeIntersects = this.movementRaycaster.intersectObjects(this.collidableObjects, true);
                 if (!(evadeIntersects.length > 0 && evadeIntersects[0].distance < this.collisionCheckDistance)) {
                     this.group.position.addScaledVector(direction, this.pursueSpeed * delta);
                 }
-
-                // Ruota per guardare il giocatore anche se si sta allontanando
                 this.group.lookAt(playerPosition.x, this.group.position.y, playerPosition.z);
                 break;
+        }
+
+        // Aggiorna sempre la posizione della pistola in base allo stato
+        this.updateGunPosition();
+
+        // Ruota gli arti per mirare solo quando necessario
+        if (this.state === 'Pursue' || this.state === 'Attack') {
+            const rightArmWorldPosition = new THREE.Vector3();
+            this.rightArm.getWorldPosition(rightArmWorldPosition);
+            const aimingVector = new THREE.Vector3().subVectors(playerPosition, rightArmWorldPosition).normalize();
+            const aimingAngleX = Math.atan2(aimingVector.y, Math.sqrt(aimingVector.x * aimingVector.x + aimingVector.z * aimingVector.z));
+            this.rightArm.rotation.x = aimingAngleX - Math.PI / 2;
+            this.rightArm.rotation.z = 0;
+            this.leftArm.rotation.x = aimingAngleX - Math.PI / 2;
+            this.leftArm.rotation.z = 0;
         }
     }
 }

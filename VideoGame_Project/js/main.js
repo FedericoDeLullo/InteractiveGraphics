@@ -155,14 +155,12 @@ function loadModels() {
     modelsToLoad.forEach(weapon => {
         loader.load(weapon.path, (gltf) => {
             const model = gltf.scene;
-            // Correzione: Assegna le proprietà una per una per evitare l'errore
             model.damage = weapon.stats.damage;
             model.range = weapon.stats.range;
             model.name = weapon.stats.name;
             model.imagePath = weapon.imagePath;
             model.fireMode = weapon.stats.fireMode;
 
-            // Imposta la scala correttamente
             model.scale.set(weapon.stats.scale, weapon.stats.scale, weapon.stats.scale);
 
             weaponModels.push(model);
@@ -229,7 +227,7 @@ function setupGameObjects() {
             const newWeapon = originalWeaponModel.clone();
             newWeapon.position.copy(playerPosition);
             newWeapon.position.y -= 0.5;
-            Object.assign(newWeapon, discardedItem); // Copia le proprietà
+            Object.assign(newWeapon, discardedItem);
             gameWorld.scene.add(newWeapon);
             gameWorld.collectibleItems.push(newWeapon);
         }
@@ -312,19 +310,15 @@ function setupEventListeners() {
         if (isGameOver || isGameWon) return;
         switch (event.code) {
             case 'ArrowUp':
-            case 'KeyW':
                 moveForward = true;
                 break;
             case 'ArrowLeft':
-            case 'KeyA':
                 moveLeft = true;
                 break;
             case 'ArrowDown':
-            case 'KeyS':
                 moveBackward = true;
                 break;
             case 'ArrowRight':
-            case 'KeyD':
                 moveRight = true;
                 break;
             case 'Space':
@@ -348,19 +342,15 @@ function setupEventListeners() {
         if (isGameOver || isGameWon) return;
         switch (event.code) {
             case 'ArrowUp':
-            case 'KeyW':
                 moveForward = false;
                 break;
             case 'ArrowLeft':
-            case 'KeyA':
                 moveLeft = false;
                 break;
             case 'ArrowDown':
-            case 'KeyS':
                 moveBackward = false;
                 break;
             case 'ArrowRight':
-            case 'KeyD':
                 moveRight = false;
                 break;
         }
@@ -380,7 +370,6 @@ function setupEventListeners() {
         }
     });
 
-    // Gestori per i pulsanti di fine gioco
     if (restartButton) restartButton.addEventListener('click', () => location.reload());
     if (exitButton) exitButton.addEventListener('click', () => window.close());
     if (victoryRestartButton) victoryRestartButton.addEventListener('click', () => location.reload());
@@ -402,7 +391,6 @@ function toggleInventory() {
 function interactWithObject() {
     const playerPos = controls.getObject().position;
 
-    // Cerca una cassa vicina
     for (const chest of gameWorld.chests) {
         const dist = chest.group.position.distanceTo(playerPos);
         if (dist < config.gameplay.chestRange && !chest.isOpen && !isOpeningChest) {
@@ -417,7 +405,6 @@ function interactWithObject() {
         }
     }
 
-    // Cerca un oggetto da raccogliere
     for (const item of gameWorld.collectibleItems) {
         const dist = item.position.distanceTo(playerPos);
         if (dist < config.gameplay.collectibleRange) {
@@ -470,6 +457,7 @@ function animate() {
     renderer.render(scene, camera);
 }
 
+// --- Logica di Movimento e Collisioni (Aggiornata) ---
 function updatePlayerMovement(delta) {
     velocity.x -= velocity.x * config.player.drag * delta;
     velocity.z -= velocity.z * config.player.drag * delta;
@@ -480,8 +468,46 @@ function updatePlayerMovement(delta) {
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
 
-    if (moveForward || moveBackward) velocity.z -= direction.z * config.player.acceleration * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * config.player.acceleration * delta;
+    const speed = config.player.acceleration * delta;
+
+    if (moveForward || moveBackward) {
+        const forwardVector = new THREE.Vector3();
+        camera.getWorldDirection(forwardVector);
+        forwardVector.y = 0;
+        forwardVector.normalize();
+
+        let moveVector = forwardVector.clone();
+        if (moveBackward) moveVector.negate();
+
+        raycaster.set(controls.getObject().position, moveVector);
+        const intersections = raycaster.intersectObjects(gameWorld.collidableObjects, true);
+
+        if (intersections.length > 0 && intersections[0].distance < 1.0) {
+            velocity.z = 0;
+        } else {
+            velocity.z -= direction.z * speed;
+        }
+    }
+
+    if (moveLeft || moveRight) {
+        const strafeVector = new THREE.Vector3();
+        camera.getWorldDirection(strafeVector);
+        strafeVector.cross(camera.up);
+        strafeVector.y = 0;
+        strafeVector.normalize();
+
+        let moveVector = strafeVector.clone();
+        if (moveLeft) moveVector.negate();
+
+        raycaster.set(controls.getObject().position, moveVector);
+        const intersections = raycaster.intersectObjects(gameWorld.collidableObjects, true);
+
+        if (intersections.length > 0 && intersections[0].distance < 1.0) {
+            velocity.x = 0;
+        } else {
+            velocity.x -= direction.x * speed;
+        }
+    }
 
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);

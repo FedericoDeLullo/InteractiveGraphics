@@ -6,7 +6,7 @@ import { HouseD } from '../houses/HouseD.js';
 import { Chest } from './Chest.js';
 import { Enemy } from './Enemy.js';
 import { EnemyDeathManager } from './EnemyDeathManager.js';
-import { Fountain } from '../houses/Fountain.js'; // Assicurati di importare anche la classe Fountain
+import { Fountain } from '../houses/Fountain.js';
 
 export class GameWorld {
     /**
@@ -31,10 +31,15 @@ export class GameWorld {
         this.playerObjects = playerObjects;
         this.playerDamageCallback = playerDamageCallback;
         this.enemyProjectiles = []; // Array per i proiettili dei nemici
-        this.fountain = null; // Aggiungi la proprietà per la fontana
+        this.fountain = null; // Proprietà per la fontana
 
-        // Crea l'istanza del gestore della morte dei nemici
-        this.enemyDeathManager = new EnemyDeathManager(this.scene, this.collidableObjects);
+        // Centralizza la logica di rimozione dei nemici
+        this.enemyDeathManager = new EnemyDeathManager(this.scene, this.collidableObjects, (enemyMesh) => {
+            const collidableIndex = this.collidableObjects.indexOf(enemyMesh);
+            if (collidableIndex > -1) {
+                this.collidableObjects.splice(collidableIndex, 1);
+            }
+        });
 
         this.housePositions = {
             houseA: [
@@ -67,46 +72,12 @@ export class GameWorld {
             ]
         };
 
+        this.createGround();
+        this.createRoads();
+        this.createTrees();
         this.createHouses();
         this.spawnEnemies();
-        this.createFountain(); // Aggiungi la chiamata al nuovo metodo per creare la fontana
-    }
-
-    /**
-     * Crea le case, le strade, il terreno e gli alberi nel mondo di gioco.
-     */
-    createHouses() {
-        this.createRoad(20, 100, 0, 0);
-        this.createRoad(100, 20, 0, -40);
-        this.createRoad(100, 20, 0, 40);
-        this.createRoad(100, 20, -40, 0);
-        this.createRoad(100, 20, 40, 0);
-        this.createRoad(20, 100, -50, 0);
-        this.createRoad(20, 100, 50, 0);
-
-        this.createTree(new THREE.Vector3(-25, 0, -20), 10, 1, 10, 5);
-        this.createTree(new THREE.Vector3(25, 0, -20), 10, 1, 10, 5);
-        this.createTree(new THREE.Vector3(-25, 0, 20), 10, 1, 10, 5);
-        this.createTree(new THREE.Vector3(25, 0, 20), 10, 1, 10, 5);
-
-        this.createGround();
-
-        const houseA = new HouseA(this.scene, this.collidableObjects);
-        this.houses.push(houseA.create());
-
-        const houseB = new HouseB(this.scene, this.collidableObjects);
-        this.houses.push(houseB.create());
-
-        const houseC = new HouseC(this.scene, this.collidableObjects);
-        this.houses.push(houseC.create());
-
-        const houseD = new HouseD(this.scene, this.collidableObjects);
-        this.houses.push(houseD.create());
-
-        this.createChestsInHouse(this.housePositions.houseA, 2);
-        this.createChestsInHouse(this.housePositions.houseB, 2);
-        this.createChestsInHouse(this.housePositions.houseC, 2);
-        this.createChestsInHouse(this.housePositions.houseD, 2);
+        this.createFountain();
     }
 
     /**
@@ -169,6 +140,19 @@ export class GameWorld {
     }
 
     /**
+     * Crea le strade e le aggiunge alla scena.
+     */
+    createRoads() {
+        this.createRoad(20, 100, 0, 0);
+        this.createRoad(100, 20, 0, -40);
+        this.createRoad(100, 20, 0, 40);
+        this.createRoad(100, 20, -40, 0);
+        this.createRoad(100, 20, 40, 0);
+        this.createRoad(20, 100, -50, 0);
+        this.createRoad(20, 100, 50, 0);
+    }
+
+    /**
      * Crea una strada e la aggiunge alla scena.
      * @param {number} width - La larghezza della strada.
      * @param {number} depth - La profondità della strada.
@@ -185,16 +169,46 @@ export class GameWorld {
     }
 
     /**
+     * Crea gli alberi e li aggiunge alla scena.
+     */
+    createTrees() {
+        this.createTree(new THREE.Vector3(-25, 0, -20), 10, 1, 10, 5);
+        this.createTree(new THREE.Vector3(25, 0, -20), 10, 1, 10, 5);
+        this.createTree(new THREE.Vector3(-25, 0, 20), 10, 1, 10, 5);
+        this.createTree(new THREE.Vector3(25, 0, 20), 10, 1, 10, 5);
+    }
+
+    /**
+     * Crea le case e le aggiunge alla scena.
+     */
+    createHouses() {
+        const houseA = new HouseA(this.scene, this.collidableObjects);
+        this.houses.push(houseA.create());
+
+        const houseB = new HouseB(this.scene, this.collidableObjects);
+        this.houses.push(houseB.create());
+
+        const houseC = new HouseC(this.scene, this.collidableObjects);
+        this.houses.push(houseC.create());
+
+        const houseD = new HouseD(this.scene, this.collidableObjects);
+        this.houses.push(houseD.create());
+
+        this.createChestsInHouse(this.housePositions.houseA, 2);
+        this.createChestsInHouse(this.housePositions.houseB, 2);
+        this.createChestsInHouse(this.housePositions.houseC, 2);
+        this.createChestsInHouse(this.housePositions.houseD, 2);
+    }
+
+    /**
      * Genera e aggiunge nemici al mondo di gioco.
      */
     spawnEnemies() {
-        // Passa l'istanza di enemyDeathManager e l'array dei proiettili al costruttore di Enemy
         const enemy1 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-20, 1, -20), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager, this.enemyProjectiles);
         const enemy2 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(30, 1, 10), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager, this.enemyProjectiles);
         const enemy3 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-5, 1, -40), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager, this.enemyProjectiles);
 
         this.enemies.push(enemy1, enemy2, enemy3);
-
         this.collidableObjects.push(enemy1.mesh, enemy2.mesh, enemy3.mesh);
     }
 
@@ -214,56 +228,47 @@ export class GameWorld {
      * @param {THREE.WebGLRenderer} renderer - Il renderer Three.js.
      */
     update(delta, playerPosition, camera, renderer) {
-        // Aggiorna la logica di esplosione nel manager esterno
         this.enemyDeathManager.update(delta);
-        this.fountain.update(); // Aggiungi la chiamata per aggiornare la fontana
+        this.fountain.update();
 
-        // Aggiorna i nemici e le loro barre della vita
+        // Aggiorna i nemici e le loro barre della vita, rimuovendo quelli morti
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
             enemy.update(delta, playerPosition);
             enemy.updateHealthBar(camera, renderer);
-            if (!enemy.isAlive && this.enemyDeathManager.activePartsCount === 0) {
-                const collidableIndex = this.collidableObjects.indexOf(enemy.mesh);
-                if (collidableIndex > -1) {
-                    this.collidableObjects.splice(collidableIndex, 1);
-                }
+            if (!enemy.isAlive) {
                 this.enemies.splice(i, 1);
             }
         }
 
-        // Array per tenere traccia dei proiettili da rimuovere
         const projectilesToRemove = [];
+        // Unisce gli oggetti del giocatore e del mondo per un unico raycast
+        const allCollidableObjects = [...this.playerObjects, ...this.collidableObjects];
 
         // Aggiorna e gestisce i proiettili dei nemici
-        this.enemyProjectiles.forEach((projectile, index) => {
+        this.enemyProjectiles.forEach((projectile) => {
             const previousPosition = projectile.position.clone();
             projectile.position.addScaledVector(projectile.velocity, delta);
 
-            // Controlla la collisione con il giocatore
-            const playerRaycaster = new THREE.Raycaster(previousPosition, projectile.velocity.clone().normalize(), 0, previousPosition.distanceTo(projectile.position));
-            const playerIntersects = playerRaycaster.intersectObjects(this.playerObjects, true);
-            if (playerIntersects.length > 0) {
-                this.playerDamageCallback(10); // Infligge 10 punti di danno al giocatore
-                projectilesToRemove.push(projectile);
-            }
+            const raycaster = new THREE.Raycaster(previousPosition, projectile.velocity.clone().normalize(), 0, previousPosition.distanceTo(projectile.position));
+            const intersects = raycaster.intersectObjects(allCollidableObjects, true);
 
-            // Controlla la collisione con muri, alberi, strade, ecc.
-            const worldRaycaster = new THREE.Raycaster(previousPosition, projectile.velocity.clone().normalize(), 0, previousPosition.distanceTo(projectile.position));
-            const worldIntersects = worldRaycaster.intersectObjects(this.collidableObjects, true);
-            if (worldIntersects.length > 0) {
+            if (intersects.length > 0) {
+                const hitObject = intersects[0].object;
+                if (hitObject.name === 'playerHitbox') {
+                    this.playerDamageCallback(10);
+                }
                 projectilesToRemove.push(projectile);
             }
         });
 
-        // Rimuovi i proiettili che hanno colpito qualcosa o hanno superato la loro portata
+        // Rimuove i proiettili che hanno colpito qualcosa o hanno superato la loro portata
         projectilesToRemove.forEach(projectile => {
             this.scene.remove(projectile);
             const index = this.enemyProjectiles.indexOf(projectile);
             if (index > -1) {
                 this.enemyProjectiles.splice(index, 1);
             }
-            // Importante: libera la memoria
             projectile.geometry.dispose();
             projectile.material.dispose();
         });

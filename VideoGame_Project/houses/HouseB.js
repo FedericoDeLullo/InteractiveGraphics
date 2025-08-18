@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
+import { Furniture } from './Furniture.js';
 
 // Funzione ausiliaria per creare le scale
 const createStairs = (parent, collidableObjects, floorHeight, houseDepth, startPosition, orientation) => {
@@ -22,6 +23,9 @@ const createStairs = (parent, collidableObjects, floorHeight, houseDepth, startP
             z = startPosition.z + (i * 2);
         } else if (orientation === 'z-reversed') {
             z = startPosition.z - (i * 2);
+        } else if (orientation === 'x-reversed') {
+            x = startPosition.x - (i * 2);
+            stair.rotation.y = Math.PI / 2;
         }
 
         stair.position.set(x, y, z);
@@ -38,6 +42,7 @@ export class HouseB {
 
     create() {
         const houseGroup = new THREE.Group();
+        // Nuova posizione per la Casa B
         houseGroup.position.copy(new THREE.Vector3(60, 0, -60));
         houseGroup.houseId = 'houseB';
 
@@ -63,18 +68,20 @@ export class HouseB {
         houseGroup.add(groundFloor);
         this.collidableObjects.push(groundFloor);
 
-        createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight + 1, houseDepth / 2);
-        createWall(houseWidth, floorHeight / 3, wallThickness, houseWidth / 10 - 5, floorHeight - 21, houseDepth / 2);
-        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, houseWidth - 31 , floorHeight - 10 , houseDepth / 2);
+        // Pareti specchiate sull'asse X
+        createWall(houseWidth, floorHeight / 3, wallThickness, -(houseWidth / 10 - 5), floorHeight + 1, houseDepth / 2);
+        createWall(houseWidth, floorHeight / 3, wallThickness, -(houseWidth / 10 - 5), floorHeight - 21, houseDepth / 2);
         createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, houseDepth / 2);
-        createWall(houseWidth / 3 - 2, floorHeight, wallThickness, -(houseWidth / 4 - 12.5), floorHeight / 2, houseDepth / 2);
-        createWall(houseWidth, floorHeight / 4, wallThickness, houseWidth - 50, floorHeight - 10, houseDepth / 2);
+        createWall(houseWidth / 4 - 1, floorHeight, wallThickness, (houseWidth - 31), floorHeight - 10, houseDepth / 2);
+        createWall(houseWidth / 3 - 2, floorHeight, wallThickness, (houseWidth / 4 - 12.5), floorHeight / 2, houseDepth / 2);
+        createWall(houseWidth, floorHeight / 4, wallThickness, -(houseWidth - 50), floorHeight - 10, houseDepth / 2);
         createWall(houseWidth, floorHeight, wallThickness, 0, floorHeight / 2, -houseDepth / 2);
         createWall(wallThickness, floorHeight / 2 + 2, houseDepth , -(houseWidth - 25), floorHeight / 2 + 5, houseDepth - 40);
-        createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, -(houseWidth - 25), floorHeight - 20,  -(houseDepth - 37));
+        createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, -(houseWidth - 25), floorHeight - 20, -(houseDepth - 37));
         createWall(wallThickness, floorHeight, houseDepth, houseWidth / 2, floorHeight / 2, 0);
 
-        createStairs(houseGroup, this.collidableObjects, floorHeight, houseDepth, new THREE.Vector3(-3, 0, 15), 'z-reversed');
+        // Scale specchiate
+        createStairs(houseGroup, this.collidableObjects, floorHeight, houseDepth, new THREE.Vector3(-3, 0, -houseDepth / 5 + 23), 'z-reversed');
 
         const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
         secondFloor.position.y = floorHeight;
@@ -127,7 +134,7 @@ export class HouseB {
         createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
         createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, 5, -GroundWallYPosition + 28, 0, specialWallMaterial);
         createWall(houseWidth / 2 + 15, GroundWallHeight / 2 - 6, wallThickness, -5, -GroundWallYPosition + 28, 0, specialWallMaterial);
-        createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMaterial);
+        createWall(wallThickness, GroundWallHeight, houseDepth / 2 + 12, 0, GroundWallYPosition - 20, 0, specialWallMateriall);
         createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 15, 0, GroundWallYPosition - 9, 2.5, specialWallMaterial);
         createWall(wallThickness, GroundWallHeight / 4 - 1, houseDepth / 2 - 5, 0, GroundWallYPosition - 12, -12.5, specialWallMaterial);
 
@@ -137,8 +144,92 @@ export class HouseB {
         createWall(houseWidth / 2 - 5 , wallHeight, wallThickness, 10, wallYPosition, 0, specialWallMaterial);
         createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
         createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, -5, wallYPosition + 3, 0, specialWallMaterial);
-        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMaterial);
-        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMateriall);
+        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMaterial);
+        createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
+
+        // Aggiungo il primo tavolo e sedie specchiato
+        const table1 = new Furniture();
+        table1.getObjectByName('sofa').visible = false;
+        table1.getObjectByName('bed').visible = false;
+        table1.getObjectByName('desk').visible = false;
+        table1.position.set(10, 0, -10);
+        table1.scale.set(2, 2, 2);
+        houseGroup.add(table1);
+
+        // Aggiungo il secondo tavolo e sedie specchiato
+        const table2 = new Furniture();
+        table2.getObjectByName('sofa').visible = false;
+        table2.getObjectByName('bed').visible = false;
+        table2.getObjectByName('desk').visible = false;
+        table2.position.set(-10, 0, -10);
+        table2.scale.set(2, 2, 2);
+        houseGroup.add(table2);
+
+        // Aggiungo il primo divano specchiato
+        const sofa1 = new Furniture();
+        sofa1.getObjectByName('tableAndChairs').visible = false;
+        sofa1.getObjectByName('bed').visible = false;
+        sofa1.getObjectByName('desk').visible = false;
+        sofa1.position.set(22, 0, -18.5);
+        sofa1.scale.set(2, 2, 2);
+        houseGroup.add(sofa1);
+
+        // Aggiungo il secondo divano specchiato
+        const sofa2 = new Furniture();
+        sofa2.getObjectByName('tableAndChairs').visible = false;
+        sofa2.getObjectByName('bed').visible = false;
+        sofa2.getObjectByName('desk').visible = false;
+        sofa2.position.set(-22, 0, -18.5);
+        sofa2.scale.set(2, 2, 2);
+        houseGroup.add(sofa2);
+
+        // Aggiungo un letto specchiato
+        const bedFurniture = new Furniture();
+        bedFurniture.getObjectByName('tableAndChairs').visible = false;
+        bedFurniture.getObjectByName('sofa').visible = false;
+        bedFurniture.getObjectByName('desk').visible = false;
+        bedFurniture.position.set(-22, 10, -15);
+        bedFurniture.scale.set(2.5, 2.5, 2.5);
+        houseGroup.add(bedFurniture);
+
+        // Aggiungo un altro letto specchiato
+        const bedFurniture1 = new Furniture();
+        bedFurniture1.getObjectByName('tableAndChairs').visible = false;
+        bedFurniture1.getObjectByName('sofa').visible = false;
+        bedFurniture1.getObjectByName('desk').visible = false;
+        bedFurniture1.position.set(22, 10, -15);
+        bedFurniture1.scale.set(2.5, 2.5, 2.5);
+        houseGroup.add(bedFurniture1);
+
+
+        // Aggiungo una scrivania piano terra specchiata
+        const deskFurniture = new Furniture();
+        deskFurniture.getObjectByName('tableAndChairs').visible = false;
+        deskFurniture.getObjectByName('sofa').visible = false;
+        deskFurniture.getObjectByName('bed').visible = false;
+        deskFurniture.position.set(21, 0, 18);
+        deskFurniture.scale.set(2.5, 2.5, 2.5);
+        houseGroup.add(deskFurniture);
+
+        // Aggiungo una scrivania secondo piano a sinistra specchiata
+        const deskFurniture1 = new Furniture();
+        deskFurniture1.getObjectByName('tableAndChairs').visible = false;
+        deskFurniture1.getObjectByName('sofa').visible = false;
+        deskFurniture1.getObjectByName('bed').visible = false;
+        deskFurniture1.position.set(21, 10, 18);
+        deskFurniture1.scale.set(2.5, 2.5, 2.5);
+        houseGroup.add(deskFurniture1);
+
+
+        // Aggiungo una scrivania secondo piano a destra specchiata
+        const deskFurniture2 = new Furniture();
+        deskFurniture2.getObjectByName('tableAndChairs').visible = false;
+        deskFurniture2.getObjectByName('sofa').visible = false;
+        deskFurniture2.getObjectByName('bed').visible = false;
+        deskFurniture2.position.set(-21, 10, 18);
+        deskFurniture2.scale.set(2.5, 2.5, 2.5);
+        houseGroup.add(deskFurniture2);
+
 
         this.scene.add(houseGroup);
         return houseGroup;

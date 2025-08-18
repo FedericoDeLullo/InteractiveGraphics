@@ -6,6 +6,7 @@ import { HouseD } from '../houses/HouseD.js';
 import { Chest } from './Chest.js';
 import { Enemy } from './Enemy.js';
 import { EnemyDeathManager } from './EnemyDeathManager.js';
+import { Fountain } from '../houses/Fountain.js'; // Assicurati di importare anche la classe Fountain
 
 export class GameWorld {
     /**
@@ -30,6 +31,7 @@ export class GameWorld {
         this.playerObjects = playerObjects;
         this.playerDamageCallback = playerDamageCallback;
         this.enemyProjectiles = []; // Array per i proiettili dei nemici
+        this.fountain = null; // Aggiungi la proprietà per la fontana
 
         // Crea l'istanza del gestore della morte dei nemici
         this.enemyDeathManager = new EnemyDeathManager(this.scene, this.collidableObjects);
@@ -67,6 +69,7 @@ export class GameWorld {
 
         this.createHouses();
         this.spawnEnemies();
+        this.createFountain(); // Aggiungi la chiamata al nuovo metodo per creare la fontana
     }
 
     /**
@@ -196,6 +199,14 @@ export class GameWorld {
     }
 
     /**
+     * Crea la fontana al centro del mondo di gioco.
+     */
+    createFountain() {
+        this.fountain = new Fountain(this.scene);
+        this.collidableObjects.push(this.fountain.fountainGroup);
+    }
+
+    /**
      * Aggiorna lo stato dei nemici e delle barre della vita.
      * @param {number} delta - Il tempo trascorso dall'ultimo frame.
      * @param {THREE.Vector3} playerPosition - La posizione del giocatore.
@@ -205,6 +216,7 @@ export class GameWorld {
     update(delta, playerPosition, camera, renderer) {
         // Aggiorna la logica di esplosione nel manager esterno
         this.enemyDeathManager.update(delta);
+        this.fountain.update(); // Aggiungi la chiamata per aggiornare la fontana
 
         // Aggiorna i nemici e le loro barre della vita
         for (let i = this.enemies.length - 1; i >= 0; i--) {

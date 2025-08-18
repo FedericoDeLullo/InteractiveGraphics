@@ -20,14 +20,14 @@ body {
 #instructions {
     cursor: pointer;
     padding: 25px 40px;
-    background-color: #2e8b57; /* Verde militare scuro */
-    border: 2px solid #556b2f; /* Verde oliva */
+    background-color: rgba(47, 79, 79, 0.95); /* Grigio scuro verde */
+    border: 2px solid  #5f9ea0; /* Verde oliva */
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
     transition: all 0.3s ease;
 }
 #instructions:hover {
-    background-color: #3cb371; /* Verde mare chiaro */
+    background-color:  #5f9ea0;; /* Verde mare chiaro */
     border-color: #6b8e23; /* Verde oliva più scuro */
 }
 #instructions p {

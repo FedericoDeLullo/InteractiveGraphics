@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
+import { Furniture } from './Furniture.js';
 
 // Funzione ausiliaria per creare le scale
 const createStairs = (parent, collidableObjects, floorHeight, houseDepth, startPosition, orientation) => {
@@ -139,6 +140,90 @@ export class HouseA {
         createWall(houseWidth / 2 + 15, wallHeight / 2, wallThickness, 5, wallYPosition + 3, 0, specialWallMaterial);
         createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMaterial);
         createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
+
+        // Aggiungo il primo tavolo e sedie
+        const table1 = new Furniture();
+        table1.getObjectByName('sofa').visible = false;
+        table1.getObjectByName('bed').visible = false;
+        table1.getObjectByName('desk').visible = false;
+        table1.position.set(-10, 0, -10);
+        table1.scale.set(2, 2, 2); // Aumenta la dimensione del tavolo e delle sedie
+        houseGroup.add(table1);
+
+        // Aggiungo il secondo tavolo e sedie
+        const table2 = new Furniture();
+        table2.getObjectByName('sofa').visible = false;
+        table2.getObjectByName('bed').visible = false;
+        table2.getObjectByName('desk').visible = false;
+        table2.position.set(10, 0, -10);
+        table2.scale.set(2, 2, 2); // Aumenta la dimensione del tavolo e delle sedie
+        houseGroup.add(table2);
+
+        // Aggiungo il primo divano e lo ingrandisco
+        const sofa1 = new Furniture();
+        sofa1.getObjectByName('tableAndChairs').visible = false;
+        sofa1.getObjectByName('bed').visible = false;
+        sofa1.getObjectByName('desk').visible = false;
+        sofa1.position.set(-22, 0, -18.5);
+        sofa1.scale.set(2, 2, 2); // Aumenta la dimensione del divano
+        houseGroup.add(sofa1);
+
+        // Aggiungo il secondo divano e lo ingrandisco
+        const sofa2 = new Furniture();
+        sofa2.getObjectByName('tableAndChairs').visible = false;
+        sofa2.getObjectByName('bed').visible = false;
+        sofa2.getObjectByName('desk').visible = false;
+        sofa2.position.set(22, 0, -18.5);
+        sofa2.scale.set(2, 2, 2); // Aumenta la dimensione del divano
+        houseGroup.add(sofa2);
+
+        // Aggiungo un letto
+        const bedFurniture = new Furniture();
+        bedFurniture.getObjectByName('tableAndChairs').visible = false;
+        bedFurniture.getObjectByName('sofa').visible = false;
+        bedFurniture.getObjectByName('desk').visible = false;
+        bedFurniture.position.set(22, 10, -15);
+        bedFurniture.scale.set(2.5, 2.5, 2.5); // Aumenta la dimensione del letto
+        houseGroup.add(bedFurniture);
+
+        // Aggiungo un letto
+        const bedFurniture1 = new Furniture();
+        bedFurniture1.getObjectByName('tableAndChairs').visible = false;
+        bedFurniture1.getObjectByName('sofa').visible = false;
+        bedFurniture1.getObjectByName('desk').visible = false;
+        bedFurniture1.position.set(-22, 10, -15);
+        bedFurniture1.scale.set(2.5, 2.5, 2.5); // Aumenta la dimensione del letto
+        houseGroup.add(bedFurniture1);
+
+
+        // Aggiungo una scrivania piano terra
+        const deskFurniture = new Furniture();
+        deskFurniture.getObjectByName('tableAndChairs').visible = false;
+        deskFurniture.getObjectByName('sofa').visible = false;
+        deskFurniture.getObjectByName('bed').visible = false;
+        deskFurniture.position.set(-21, 0, 18); // Posizione diversa per la scrivania
+        deskFurniture.scale.set(2.5, 2.5, 2.5); // Aumenta la dimensione della scrivania
+        houseGroup.add(deskFurniture);
+
+        // Aggiungo una scrivania secondo piano a sinistra
+        const deskFurniture1 = new Furniture();
+        deskFurniture1.getObjectByName('tableAndChairs').visible = false;
+        deskFurniture1.getObjectByName('sofa').visible = false;
+        deskFurniture1.getObjectByName('bed').visible = false;
+        deskFurniture1.position.set(-21, 10, 18); // Posizione diversa per la scrivania
+        deskFurniture1.scale.set(2.5, 2.5, 2.5); // Aumenta la dimensione della scrivania
+        houseGroup.add(deskFurniture1);
+
+
+        // Aggiungo una scrivania secondo piano a destra
+        const deskFurniture2 = new Furniture();
+        deskFurniture2.getObjectByName('tableAndChairs').visible = false;
+        deskFurniture2.getObjectByName('sofa').visible = false;
+        deskFurniture2.getObjectByName('bed').visible = false;
+        deskFurniture2.position.set(21, 10, 18); // Posizione diversa per la scrivania
+        deskFurniture2.scale.set(2.5, 2.5, 2.5); // Aumenta la dimensione della scrivania
+        houseGroup.add(deskFurniture2);
+
 
         this.scene.add(houseGroup);
         return houseGroup;

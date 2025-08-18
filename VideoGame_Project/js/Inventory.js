@@ -8,20 +8,20 @@ export class Inventory {
 
     addItem(item) {
         this.items.push(item);
-        console.log(`Oggetto aggiunto all'inventario: ${item.name}`);
+        console.log(`Item added to inventory: ${item.name}`);
         this.render();
     }
 
     removeItem(itemToRemove) {
         this.items = this.items.filter(item => item !== itemToRemove);
-        console.log(`Oggetto rimosso dall'inventario: ${itemToRemove.name}`);
+        console.log(`Item removed from inventory: ${itemToRemove.name}`);
         this.render();
     }
 
     render() {
         this.container.innerHTML = '';
         if (this.items.length === 0) {
-            this.container.innerHTML = '<p>Il tuo inventario è vuoto.</p>';
+            this.container.innerHTML = '<p>Your inventory is empty.</p>';
             return;
         }
 
@@ -49,7 +49,7 @@ export class Inventory {
             // NUOVO: Elemento per le statistiche
             const stats = document.createElement('div');
             stats.className = 'inventory-item-stats';
-            stats.innerHTML = `Danno: ${item.damage}<br>Portata: ${item.range}`;
+            stats.innerHTML = `Damage: ${item.damage}<br>Range: ${item.range}`;
             textWrapper.appendChild(stats);
 
             itemElement.appendChild(textWrapper);
@@ -60,7 +60,7 @@ export class Inventory {
 
             const equipButton = document.createElement('button');
             equipButton.className = 'equip-button';
-            equipButton.textContent = 'Equipaggia';
+            equipButton.textContent = 'Equip';
             equipButton.onclick = () => {
                 if (this.onEquipCallback) {
                     this.onEquipCallback(item);
@@ -70,7 +70,7 @@ export class Inventory {
 
             const discardButton = document.createElement('button');
             discardButton.className = 'discard-button';
-            discardButton.textContent = 'Scarta';
+            discardButton.textContent = 'Discard';
             discardButton.onclick = () => {
                 if (this.onDiscardCallback) {
                     this.onDiscardCallback(item);

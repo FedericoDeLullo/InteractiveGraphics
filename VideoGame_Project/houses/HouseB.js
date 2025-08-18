@@ -1,10 +1,11 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 import { Furniture } from './Furniture.js';
 
-// Funzione ausiliaria per creare le scale
+// A helper function to create a flight of stairs.
 const createStairs = (parent, collidableObjects, floorHeight, houseDepth, startPosition, orientation) => {
     const stairWidth = 6;
     const stairHeight = 1.2;
+    // Calculate the number of steps. The magic number '9' suggests a specific gap or design choice.
     const numSteps = floorHeight / stairHeight - 9;
     const stairMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
 
@@ -16,45 +17,52 @@ const createStairs = (parent, collidableObjects, floorHeight, houseDepth, startP
         const y = (i * stairHeight) + stairHeight / 2;
         let z = startPosition.z;
 
+        // Adjust position and rotation based on the specified orientation.
+        // The addition of 'x-reversed' is for this mirrored house.
         if (orientation === 'x') {
             x = startPosition.x + (i * 2);
-            stair.rotation.y = Math.PI / 2;
+            stair.rotation.y = Math.PI / 2; // Rotate the stairs to align with the X-axis.
         } else if (orientation === 'z') {
             z = startPosition.z + (i * 2);
         } else if (orientation === 'z-reversed') {
             z = startPosition.z - (i * 2);
         } else if (orientation === 'x-reversed') {
-            x = startPosition.x - (i * 2);
+            x = startPosition.x - (i * 2); // Invert the X-direction for the mirrored house.
             stair.rotation.y = Math.PI / 2;
         }
 
         stair.position.set(x, y, z);
         parent.add(stair);
-        collidableObjects.push(stair);
+        collidableObjects.push(stair); // Add the stair to the list of collidable objects.
     }
 };
 
 export class HouseB {
+    // The constructor takes the scene and the array for collidable objects.
     constructor(scene, collidableObjects) {
         this.scene = scene;
         this.collidableObjects = collidableObjects;
     }
 
+    // The main method to create the entire house model.
     create() {
         const houseGroup = new THREE.Group();
-        // Nuova posizione per la Casa B
+        // New position for House B, shifted to the right side of the scene.
         houseGroup.position.copy(new THREE.Vector3(60, 0, -60));
-        houseGroup.houseId = 'houseB';
+        houseGroup.houseId = 'houseB'; // Assign a unique ID for identification.
 
+        // Define house dimensions and materials.
         const houseWidth = 50;
         const houseDepth = 40;
         const floorHeight = 20;
         const wallThickness = 0.5;
         const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd });
         const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+        // Two materials with the same color, possibly for future differentiation.
         const specialWallMaterial = new THREE.MeshStandardMaterial({ color: 0x696969 });
         const specialWallMateriall = new THREE.MeshStandardMaterial({ color: 0x696969 });
 
+        // Helper function to create a wall and add it to the house group and collidable objects array.
         const createWall = (width, height, depth, x, y, z, material = wallMaterial) => {
             const wall = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
             wall.position.set(x, y, z);
@@ -63,12 +71,14 @@ export class HouseB {
             return wall;
         };
 
+        // Create the ground floor.
         const groundFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
         groundFloor.position.y = 0;
         houseGroup.add(groundFloor);
         this.collidableObjects.push(groundFloor);
 
-        // Pareti specchiate sull'asse X
+        // Create the outer walls, with X-coordinates mirrored from House A.
+        // The negative sign on the x-values mirrors the walls across the Y-Z plane.
         createWall(houseWidth, floorHeight / 3, wallThickness, -(houseWidth / 10 - 5), floorHeight + 1, houseDepth / 2);
         createWall(houseWidth, floorHeight / 3, wallThickness, -(houseWidth / 10 - 5), floorHeight - 21, houseDepth / 2);
         createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, houseDepth / 2);
@@ -80,9 +90,10 @@ export class HouseB {
         createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, -(houseWidth - 25), floorHeight - 20, -(houseDepth - 37));
         createWall(wallThickness, floorHeight, houseDepth, houseWidth / 2, floorHeight / 2, 0);
 
-        // Scale specchiate
+        // Create the stairs, also mirrored.
         createStairs(houseGroup, this.collidableObjects, floorHeight, houseDepth, new THREE.Vector3(-3, 0, -houseDepth / 5 + 23), 'z-reversed');
 
+        // Create the second and third floors.
         const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
         secondFloor.position.y = floorHeight;
         houseGroup.add(secondFloor);
@@ -94,6 +105,7 @@ export class HouseB {
         houseGroup.add(thirdFloor);
         this.collidableObjects.push(thirdFloor);
 
+        // Create various internal walls and dividers, all with mirrored X-coordinates.
         const lateralWall = new THREE.Mesh(new THREE.BoxGeometry(houseWidth / 3 + 3, wallThickness, houseDepth ), floorMaterial);
         lateralWall.position.x = -(houseWidth / 2 - 10);
         lateralWall.position.y = floorHeight / 2;
@@ -129,6 +141,7 @@ export class HouseB {
         houseGroup.add(backWall);
         this.collidableObjects.push(backWall);
 
+        // More walls with special materials, all with mirrored X-coordinates.
         const GroundWallHeight = floorHeight;
         const GroundWallYPosition = floorHeight;
         createWall(houseWidth / 2 + 17, GroundWallHeight, wallThickness, 0, -GroundWallYPosition + 20, 0, specialWallMaterial);
@@ -138,6 +151,7 @@ export class HouseB {
         createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 15, 0, GroundWallYPosition - 9, 2.5, specialWallMaterial);
         createWall(wallThickness, GroundWallHeight / 4 - 1, houseDepth / 2 - 5, 0, GroundWallYPosition - 12, -12.5, specialWallMaterial);
 
+        // Even more walls for the upper floor, all with mirrored X-coordinates.
         const wallHeight = floorHeight / 2;
         const wallYPosition = floorHeight / 2 + 5;
         createWall(houseWidth / 3 - 0.5 , wallHeight, wallThickness, -13.5, wallYPosition, 0, specialWallMaterial);
@@ -147,98 +161,89 @@ export class HouseB {
         createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, -5, specialWallMaterial);
         createWall(wallThickness, wallHeight / 2, houseDepth / 2 + 10, 0, wallYPosition + 3, 5, specialWallMateriall);
 
-        // Aggiungo il primo tavolo e sedie specchiato
+        // Instantiate and add furniture to the house, all with mirrored X-coordinates.
         const table1 = new Furniture();
         table1.getObjectByName('sofa').visible = false;
         table1.getObjectByName('bed').visible = false;
         table1.getObjectByName('desk').visible = false;
-        table1.position.set(10, 0, -10);
+        table1.position.set(10, 0, -10); // Mirrored from -10
         table1.scale.set(2, 2, 2);
         houseGroup.add(table1);
         this.collidableObjects.push(table1);
 
-        // Aggiungo il secondo tavolo e sedie specchiato
         const table2 = new Furniture();
         table2.getObjectByName('sofa').visible = false;
         table2.getObjectByName('bed').visible = false;
         table2.getObjectByName('desk').visible = false;
-        table2.position.set(-10, 0, -10);
+        table2.position.set(-10, 0, -10); // Mirrored from 10
         table2.scale.set(2, 2, 2);
         houseGroup.add(table2);
         this.collidableObjects.push(table2);
 
-        // Aggiungo il primo divano specchiato
         const sofa1 = new Furniture();
         sofa1.getObjectByName('tableAndChairs').visible = false;
         sofa1.getObjectByName('bed').visible = false;
         sofa1.getObjectByName('desk').visible = false;
-        sofa1.position.set(22, 0, -18.5);
+        sofa1.position.set(22, 0, -18.5); // Mirrored from -22
         sofa1.scale.set(2, 2, 2);
         houseGroup.add(sofa1);
         this.collidableObjects.push(sofa1);
 
-        // Aggiungo il secondo divano specchiato
         const sofa2 = new Furniture();
         sofa2.getObjectByName('tableAndChairs').visible = false;
         sofa2.getObjectByName('bed').visible = false;
         sofa2.getObjectByName('desk').visible = false;
-        sofa2.position.set(-22, 0, -18.5);
+        sofa2.position.set(-22, 0, -18.5); // Mirrored from 22
         sofa2.scale.set(2, 2, 2);
         houseGroup.add(sofa2);
         this.collidableObjects.push(sofa2);
 
-        // Aggiungo un letto specchiato
         const bedFurniture = new Furniture();
         bedFurniture.getObjectByName('tableAndChairs').visible = false;
         bedFurniture.getObjectByName('sofa').visible = false;
         bedFurniture.getObjectByName('desk').visible = false;
-        bedFurniture.position.set(-22, 10, -15);
+        bedFurniture.position.set(-22, 10, -15); // Mirrored from 22
         bedFurniture.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(bedFurniture);
         this.collidableObjects.push(bedFurniture);
 
-        // Aggiungo un altro letto specchiato
         const bedFurniture1 = new Furniture();
         bedFurniture1.getObjectByName('tableAndChairs').visible = false;
         bedFurniture1.getObjectByName('sofa').visible = false;
         bedFurniture1.getObjectByName('desk').visible = false;
-        bedFurniture1.position.set(22, 10, -15);
+        bedFurniture1.position.set(22, 10, -15); // Mirrored from -22
         bedFurniture1.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(bedFurniture1);
         this.collidableObjects.push(bedFurniture1);
 
-
-        // Aggiungo una scrivania piano terra specchiata
         const deskFurniture = new Furniture();
         deskFurniture.getObjectByName('tableAndChairs').visible = false;
         deskFurniture.getObjectByName('sofa').visible = false;
         deskFurniture.getObjectByName('bed').visible = false;
-        deskFurniture.position.set(21, 0, 18);
+        deskFurniture.position.set(21, 0, 18); // Mirrored from -21
         deskFurniture.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(deskFurniture);
         this.collidableObjects.push(deskFurniture);
 
-        // Aggiungo una scrivania secondo piano a sinistra specchiata
         const deskFurniture1 = new Furniture();
         deskFurniture1.getObjectByName('tableAndChairs').visible = false;
         deskFurniture1.getObjectByName('sofa').visible = false;
         deskFurniture1.getObjectByName('bed').visible = false;
-        deskFurniture1.position.set(21, 10, 18);
+        deskFurniture1.position.set(21, 10, 18); // Mirrored from -21
         deskFurniture1.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(deskFurniture1);
         this.collidableObjects.push(deskFurniture1);
 
-
-        // Aggiungo una scrivania secondo piano a destra specchiata
         const deskFurniture2 = new Furniture();
         deskFurniture2.getObjectByName('tableAndChairs').visible = false;
         deskFurniture2.getObjectByName('sofa').visible = false;
         deskFurniture2.getObjectByName('bed').visible = false;
-        deskFurniture2.position.set(-21, 10, 18);
+        deskFurniture2.position.set(-21, 10, 18); // Mirrored from 21
         deskFurniture2.scale.set(2.5, 2.5, 2.5);
         houseGroup.add(deskFurniture2);
         this.collidableObjects.push(deskFurniture2);
 
+        // Add the entire house group to the scene.
         this.scene.add(houseGroup);
         return houseGroup;
     }

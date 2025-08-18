@@ -3,21 +3,21 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.126.0/examples/
 import { EnemyDeathManager } from './EnemyDeathManager.js';
 
 /**
- * Rappresenta un nemico nel mondo di gioco, gestendo il suo comportamento, il modello 3D,
- * la salute e l'interazione con il giocatore e l'ambiente.
+ * Represents an enemy in the game world, managing its behavior, 3D model,
+ * health, and interaction with the player and environment.
  */
 export class Enemy {
     /**
-     * @param {THREE.Scene} scene - La scena Three.js in cui aggiungere il nemico.
-     * @param {HTMLElement} healthBarContainer - L'elemento DOM per la barra della salute.
-     * @param {THREE.Vector3} position - La posizione iniziale del nemico.
-     * @param {number} health - La salute massima del nemico.
-     * @param {THREE.Camera} playerCamera - La telecamera del giocatore per calcolare la traiettoria di sparo.
-     * @param {Array} playerObjects - L'array di oggetti del giocatore da colpire.
-     * @param {Function} playerDamageCallback - Funzione per infliggere danno al giocatore.
-     * @param {Array} collidableObjects - L'array di oggetti con cui il nemico può entrare in collisione.
-     * @param {EnemyDeathManager} enemyDeathManager - L'istanza del gestore della morte dei nemici.
-     * @param {Array} enemyProjectiles - L'array globale dei proiettili dei nemici.
+     * @param {THREE.Scene} scene - The Three.js scene to which the enemy will be added.
+     * @param {HTMLElement} healthBarContainer - The DOM element for the health bar.
+     * @param {THREE.Vector3} position - The initial position of the enemy.
+     * @param {number} health - The maximum health of the enemy.
+     * @param {THREE.Camera} playerCamera - The player's camera to calculate the shooting trajectory.
+     * @param {Array} playerObjects - The array of player objects to hit.
+     * @param {Function} playerDamageCallback - Function to inflict damage on the player.
+     * @param {Array} collidableObjects - The array of objects the enemy can collide with.
+     * @param {EnemyDeathManager} enemyDeathManager - The instance of the enemy death manager.
+     * @param {Array} enemyProjectiles - The global array of enemy projectiles.
      */
     constructor(scene, healthBarContainer, position = new THREE.Vector3(0, 0, 0), health = 100, playerCamera, playerObjects, playerDamageCallback, collidableObjects, enemyDeathManager, enemyProjectiles) {
         this.scene = scene;
@@ -25,7 +25,7 @@ export class Enemy {
         this.health = health;
         this.isAlive = true;
 
-        // Riferimenti esterni per l'interazione con il mondo di gioco
+        // External references for interacting with the game world
         this.playerCamera = playerCamera;
         this.playerObjects = playerObjects;
         this.collidableObjects = collidableObjects;
@@ -33,19 +33,19 @@ export class Enemy {
         this.enemyDeathManager = enemyDeathManager;
         this.enemyProjectiles = enemyProjectiles;
 
-        // Raycaster per la rilevazione di collisioni e la posizione sul terreno
+        // Raycasters for collision detection and ground positioning
         this.raycaster = new THREE.Raycaster();
         this.down = new THREE.Vector3(0, -1, 0);
         this.movementRaycaster = new THREE.Raycaster();
         this.collisionCheckDistance = 1.0;
 
-        // Gruppo principale per il nemico, che contiene il modello e l'hitbox
+        // Main group for the enemy, containing the model and the hitbox
         this.group = new THREE.Group();
         this.group.position.copy(position);
-        this.group.scale.set(0.6, 0.6, 0.6); // Utilizza l'impostazione fornita in precedenza
+        this.group.scale.set(0.6, 0.6, 0.6); // Using the previously provided setting
         this.scene.add(this.group);
 
-        // Parametri di movimento e attacco
+        // Movement and attack parameters
         this.speed = 2.0;
         this.pursueSpeed = 4.0;
         this.attackCooldown = 1.5;
@@ -53,22 +53,22 @@ export class Enemy {
         this.damage = 10;
         this.fireSound = new Audio('sounds/pistol.mp3');
 
-        // Stati del nemico e variabili per il roaming
+        // Enemy states and variables for roaming
         this.state = 'Idle';
         this.roamingTimer = 0;
         this.roamingDuration = 5;
         this.roamingDirection = this.getRandomDirection();
 
-        // Raggi di rilevamento e attacco
+        // Detection and attack ranges
         this.pursueRange = 20;
         this.attackRange = 10;
         this.minAttackDistance = 2;
 
-        // Variabili per l'animazione degli arti
+        // Variables for limb animation
         this.walkCycle = 0;
         this.walkSpeed = 5;
 
-        // Parti del modello 3D
+        // 3D model parts
         this.model = null;
         this.head = null;
         this.leftArm = null;
@@ -78,21 +78,21 @@ export class Enemy {
         this.gun = null;
         this.gunLeft = null;
 
-        // Punti di riferimento per la pistola
+        // Reference points for the gun
         this.gunIdlePosition = new THREE.Vector3(0.5, -3, 0.5);
         this.gunIdleRotation = new THREE.Euler(Math.PI / 2, 0, 0);
         this.gunPursuePosition = new THREE.Vector3(0.1, -2.5, 0.8);
         this.gunPursueRotation = new THREE.Euler(Math.PI / 2, 0, 0);
 
-        // Inizializzazione del nemico
+        // Initialize the enemy
         this.createEnemyModel();
         this.createEnemyHitbox();
         this.createHealthBar(healthBarContainer);
     }
 
     /**
-     * Genera una direzione casuale per il roaming.
-     * @returns {THREE.Vector3} Una direzione casuale normalizzata.
+     * Generates a random direction for roaming.
+     * @returns {THREE.Vector3} A normalized random direction vector.
      */
     getRandomDirection() {
         const randomAngle = Math.random() * Math.PI * 2;
@@ -100,7 +100,7 @@ export class Enemy {
     }
 
     /**
-     * Crea l'hitbox invisibile del nemico per la rilevazione delle collisioni.
+     * Creates the enemy's invisible hitbox for collision detection.
      */
     createEnemyHitbox() {
         const enemyGeometry = new THREE.BoxGeometry(2, 10, 2);
@@ -115,26 +115,26 @@ export class Enemy {
     }
 
     /**
-     * Crea il modello 3D del nemico, includendo corpo, testa, arti e pistola.
+     * Creates the enemy's 3D model, including body, head, limbs, and gun.
      */
     createEnemyModel() {
-        // Corpo principale
+        // Main body
         const bodyGeometry = new THREE.BoxGeometry(3, 5, 2);
         const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x8B0000, flatShading: true });
         this.model = new THREE.Mesh(bodyGeometry, bodyMaterial);
 
-        // Testa
+        // Head
         const headGeometry = new THREE.SphereGeometry(1.5, 32, 32);
         const headMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
         this.head = new THREE.Mesh(headGeometry, headMaterial);
         this.head.position.y = 3.5;
         this.model.add(this.head);
 
-        // Occhi, naso e capelli
+        // Eyes, nose, and hair
         this.createFaceParts();
         this.createHair();
 
-        // Braccia e gambe
+        // Arms and legs
         const armGeometry = new THREE.BoxGeometry(1, 4, 1);
         const legGeometry = new THREE.BoxGeometry(1, 4, 1);
         const armMaterial = new THREE.MeshStandardMaterial({ color: 0x696969 });
@@ -148,14 +148,14 @@ export class Enemy {
 
         this.model.add(this.leftArm, this.rightArm, this.leftLeg, this.rightLeg);
 
-        // Carica e aggiunge la pistola
+        // Loads and adds the gun
         this.loadGunModel();
 
         this.group.add(this.model);
     }
 
     /**
-     * Crea e aggiunge gli elementi del viso (occhi, naso) alla testa del nemico.
+     * Creates and adds face elements (eyes, nose) to the enemy's head.
      */
     createFaceParts() {
         const eyeGeometry = new THREE.SphereGeometry(0.2, 16, 16);
@@ -175,7 +175,7 @@ export class Enemy {
     }
 
     /**
-     * Crea e aggiunge gli elementi dei capelli alla testa del nemico.
+     * Creates and adds hair elements to the enemy's head.
      */
     createHair() {
         const hairMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
@@ -196,13 +196,13 @@ export class Enemy {
     }
 
     /**
-     * Crea un arto (braccio o gamba) con una mano/piede.
-     * @param {THREE.BufferGeometry} limbGeometry - Geometria dell'arto.
-     * @param {THREE.Material} limbMaterial - Materiale dell'arto.
-     * @param {THREE.Vector3} position - Posizione dell'arto rispetto al corpo.
-     * @param {THREE.Material} handFootMaterial - Materiale per la mano/piede.
-     * @param {string} type - Tipo di arto ('hand' o 'foot').
-     * @returns {THREE.Mesh} Il mesh dell'arto completo.
+     * Creates a limb (arm or leg) with a hand/foot.
+     * @param {THREE.BufferGeometry} limbGeometry - The geometry of the limb.
+     * @param {THREE.Material} limbMaterial - The material of the limb.
+     * @param {THREE.Vector3} position - The position of the limb relative to the body.
+     * @param {THREE.Material} handFootMaterial - The material for the hand/foot.
+     * @param {string} type - The type of limb ('hand' or 'foot').
+     * @returns {THREE.Mesh} The complete limb mesh.
      */
     createLimb(limbGeometry, limbMaterial, position, handFootMaterial, type) {
         const limb = new THREE.Mesh(limbGeometry, limbMaterial);
@@ -217,7 +217,7 @@ export class Enemy {
     }
 
     /**
-     * Carica il modello GLTF della pistola e lo aggiunge alle braccia.
+     * Loads the GLTF gun model and adds it to the arms.
      */
     loadGunModel() {
         const loader = new GLTFLoader();
@@ -239,8 +239,8 @@ export class Enemy {
     }
 
     /**
-     * Crea la barra della salute del nemico nel DOM.
-     * @param {HTMLElement} container - L'elemento DOM padre per la barra della salute.
+     * Creates the enemy's health bar in the DOM.
+     * @param {HTMLElement} container - The parent DOM element for the health bar.
      */
     createHealthBar(container) {
         this.healthBar = document.createElement('div');
@@ -263,8 +263,8 @@ export class Enemy {
     }
 
     /**
-     * Infligge danno al nemico.
-     * @param {number} damage - Il danno da infliggere.
+     * Inflicts damage on the enemy.
+     * @param {number} damage - The amount of damage to inflict.
      */
     takeDamage(damage) {
         if (!this.isAlive) return;
@@ -290,8 +290,8 @@ export class Enemy {
     }
 
     /**
-     * Crea e spara un proiettile verso il giocatore.
-     * @param {THREE.Vector3} playerPosition - La posizione attuale del giocatore.
+     * Creates and shoots a projectile towards the player.
+     * @param {THREE.Vector3} playerPosition - The current position of the player.
      */
     shoot(playerPosition) {
         const now = Date.now();
@@ -320,9 +320,9 @@ export class Enemy {
     }
 
     /**
-     * Aggiorna la posizione della barra della salute in base alla posizione del nemico.
-     * @param {THREE.Camera} camera - La telecamera della scena.
-     * @param {THREE.WebGLRenderer} renderer - Il renderer Three.js.
+     * Updates the health bar's position based on the enemy's position.
+     * @param {THREE.Camera} camera - The scene camera.
+     * @param {THREE.WebGLRenderer} renderer - The Three.js renderer.
      */
     updateHealthBar(camera, renderer) {
         if (!this.isAlive) {
@@ -351,9 +351,9 @@ export class Enemy {
     }
 
     /**
-     * Anima il movimento delle gambe del nemico.
-     * @param {number} delta - Il tempo trascorso dall'ultimo frame.
-     * @param {number} direction - 1 per avanti, -1 per indietro.
+     * Animates the movement of the enemy's limbs.
+     * @param {number} delta - The time elapsed since the last frame.
+     * @param {number} direction - 1 for forward, -1 for backward.
      */
     animateLimbs(delta, direction = 1) {
         this.walkCycle += this.walkSpeed * delta;
@@ -365,7 +365,7 @@ export class Enemy {
     }
 
     /**
-     * Aggiorna la posizione e la rotazione delle pistole in base allo stato del nemico.
+     * Updates the position and rotation of the guns based on the enemy's state.
      */
     updateGunPosition() {
         if (!this.gun || !this.gunLeft) return;
@@ -381,16 +381,16 @@ export class Enemy {
     }
 
     /**
-     * Aggiorna lo stato, il movimento e le animazioni del nemico.
-     * @param {number} delta - Il tempo trascorso dall'ultimo frame.
-     * @param {THREE.Vector3} playerPosition - La posizione del giocatore.
+     * Updates the enemy's state, movement, and animations.
+     * @param {number} delta - The time elapsed since the last frame.
+     * @param {THREE.Vector3} playerPosition - The player's position.
      */
     update(delta, playerPosition) {
         if (!this.isAlive) {
             return;
         }
 
-        // Posiziona il nemico a terra
+        // Positions the enemy on the ground
         this.raycaster.set(this.group.position, this.down);
         const intersects = this.raycaster.intersectObjects(this.collidableObjects, true);
         if (intersects.length > 0) {
@@ -399,7 +399,7 @@ export class Enemy {
             this.group.position.y = targetY;
         }
 
-        // Determina lo stato del nemico in base alla distanza dal giocatore
+        // Determines the enemy's state based on the distance from the player
         const distanceToPlayer = this.group.position.distanceTo(playerPosition);
         if (distanceToPlayer <= this.minAttackDistance) {
             this.state = 'Evade';
@@ -413,7 +413,7 @@ export class Enemy {
 
         let direction = new THREE.Vector3();
 
-        // Esegue le azioni appropriate per ogni stato
+        // Performs the appropriate actions for each state
         switch (this.state) {
             case 'Idle':
                 this.animateLimbs(delta);
@@ -445,7 +445,7 @@ export class Enemy {
                 break;
 
             case 'Attack':
-                // Ferma il movimento, ma continua a guardare il giocatore e spara
+                // Stops movement, but continues to look at the player and shoot
                 this.leftLeg.rotation.x = 0;
                 this.rightLeg.rotation.x = 0;
                 this.leftArm.rotation.x = 0;
@@ -455,7 +455,7 @@ export class Enemy {
                 break;
 
             case 'Evade':
-                this.animateLimbs(delta, -1); // Anima camminata all'indietro
+                this.animateLimbs(delta, -1); // Animates backward walk
                 direction.subVectors(this.group.position, playerPosition).normalize();
                 this.movementRaycaster.set(this.group.position, direction);
                 const evadeIntersects = this.movementRaycaster.intersectObjects(this.collidableObjects, true);
@@ -466,10 +466,10 @@ export class Enemy {
                 break;
         }
 
-        // Aggiorna sempre la posizione della pistola in base allo stato
+        // Always update the gun's position based on the state
         this.updateGunPosition();
 
-        // Ruota gli arti per mirare solo quando necessario
+        // Rotates the arms for aiming only when necessary
         if (this.state === 'Pursue' || this.state === 'Attack') {
             const rightArmWorldPosition = new THREE.Vector3();
             this.rightArm.getWorldPosition(rightArmWorldPosition);

@@ -1,11 +1,11 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 import { Furniture } from './Furniture.js';
 
-// Funzione ausiliaria per creare le scale
+// Helper function to create stairs
 const createStairs = (parent, collidableObjects, floorHeight, houseDepth, startPosition, orientation) => {
     const stairWidth = 6;
     const stairHeight = 1.2;
-    // Calcola il numero di gradini necessari
+    // Calculate the number of steps needed
     const numSteps = floorHeight / stairHeight - 9;
     const stairMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
 
@@ -17,7 +17,7 @@ const createStairs = (parent, collidableObjects, floorHeight, houseDepth, startP
         const y = (i * stairHeight) + (stairHeight / 2);
         let z = startPosition.z;
 
-        // Gestisce l'orientamento delle scale in base al parametro
+        // Handle stair orientation based on the parameter
         if (orientation === 'x') {
             x = startPosition.x + (i * 2);
             stair.rotation.y = Math.PI / 2;
@@ -37,7 +37,7 @@ const createStairs = (parent, collidableObjects, floorHeight, houseDepth, startP
 };
 
 /**
- * Classe per creare una casa di tipo D.
+ * Class to create a House of type D.
  */
 export class HouseD {
     constructor(scene, collidableObjects) {
@@ -71,9 +71,9 @@ export class HouseD {
         houseGroup.add(groundFloor);
         this.collidableObjects.push(groundFloor);
 
-        // Pareti specchiate sull'asse Z
-        createWall(houseWidth, floorHeight / 3, wallThickness, -(houseWidth / 10 - 5), floorHeight + 1, -(houseDepth / 2));
-        createWall(houseWidth, floorHeight / 3, wallThickness, -(houseWidth / 10 - 5), floorHeight - 21, -(houseDepth / 2));
+        // Z-axis mirrored walls
+        createWall(houseWidth / 2 + 25, floorHeight / 3, wallThickness, -(houseWidth / 10 - 5), floorHeight + 1, -(houseDepth / 2));
+        createWall(houseWidth / 2 + 25, floorHeight / 3, wallThickness, -(houseWidth / 10 - 5), floorHeight - 21, -(houseDepth / 2));
         createWall(houseWidth / 4 - 1, floorHeight, wallThickness, -(houseWidth - 31), floorHeight - 10, -(houseDepth / 2));
         createWall(houseWidth / 4 - 1, floorHeight, wallThickness, (houseWidth - 31), floorHeight - 10, -(houseDepth / 2));
         createWall(houseWidth / 3 - 2, floorHeight, wallThickness, (houseWidth / 4 - 12.5), floorHeight / 2, -(houseDepth / 2));
@@ -83,7 +83,7 @@ export class HouseD {
         createWall(wallThickness, floorHeight / 4 + 38, houseDepth / 2 + 16, -(houseWidth - 25), floorHeight - 20, houseDepth - 37);
         createWall(wallThickness, floorHeight, houseDepth, houseWidth / 2, floorHeight / 2, 0);
 
-        // Scale specchiate
+        // Mirrored stairs
         createStairs(houseGroup, this.collidableObjects, floorHeight, houseDepth, new THREE.Vector3(-3, 0, houseDepth / 2 - 35), 'z');
 
         const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, wallThickness, houseDepth), floorMaterial);
@@ -151,7 +151,7 @@ export class HouseD {
         createWall(wallThickness, wallHeight / 2 - 1, houseDepth / 2 + 10, 0, wallYPosition - 7, 5, specialWallMaterial);
         createWall(wallThickness, GroundWallHeight / 2, houseDepth / 2 + 15, 0, GroundWallYPosition - 9, -2.5, specialWallMaterial);
 
-        // Aggiungo il primo tavolo e sedie
+        // Add the first table and chairs
         const table1 = new Furniture();
         table1.getObjectByName('sofa').visible = false;
         table1.getObjectByName('bed').visible = false;
@@ -161,7 +161,7 @@ export class HouseD {
         houseGroup.add(table1);
         this.collidableObjects.push(table1);
 
-        // Aggiungo il secondo tavolo e sedie
+        // Add the second table and chairs
         const table2 = new Furniture();
         table2.getObjectByName('sofa').visible = false;
         table2.getObjectByName('bed').visible = false;
@@ -171,7 +171,7 @@ export class HouseD {
         houseGroup.add(table2);
         this.collidableObjects.push(table2);
 
-        // Aggiungo il primo divano
+        // Add the first sofa
         const sofa1 = new Furniture();
         sofa1.getObjectByName('tableAndChairs').visible = false;
         sofa1.getObjectByName('bed').visible = false;
@@ -181,7 +181,7 @@ export class HouseD {
         houseGroup.add(sofa1);
         this.collidableObjects.push(sofa1);
 
-        // Aggiungo il secondo divano
+        // Add the second sofa
         const sofa2 = new Furniture();
         sofa2.getObjectByName('tableAndChairs').visible = false;
         sofa2.getObjectByName('bed').visible = false;
@@ -191,7 +191,7 @@ export class HouseD {
         houseGroup.add(sofa2);
         this.collidableObjects.push(sofa2);
 
-        // Aggiungo un letto
+        // Add a bed
         const bedFurniture = new Furniture();
         bedFurniture.getObjectByName('tableAndChairs').visible = false;
         bedFurniture.getObjectByName('sofa').visible = false;
@@ -201,7 +201,7 @@ export class HouseD {
         houseGroup.add(bedFurniture);
         this.collidableObjects.push(bedFurniture);
 
-        // Aggiungo un altro letto
+        // Add another bed
         const bedFurniture1 = new Furniture();
         bedFurniture1.getObjectByName('tableAndChairs').visible = false;
         bedFurniture1.getObjectByName('sofa').visible = false;
@@ -212,7 +212,7 @@ export class HouseD {
         this.collidableObjects.push(bedFurniture1);
 
 
-        // Aggiungo una scrivania piano terra
+        // Add a desk on the ground floor
         const deskFurniture = new Furniture();
         deskFurniture.getObjectByName('tableAndChairs').visible = false;
         deskFurniture.getObjectByName('sofa').visible = false;
@@ -222,7 +222,7 @@ export class HouseD {
         houseGroup.add(deskFurniture);
         this.collidableObjects.push(deskFurniture);
 
-        // Aggiungo una scrivania secondo piano a sinistra
+        // Add a desk on the second floor, left side
         const deskFurniture1 = new Furniture();
         deskFurniture1.getObjectByName('tableAndChairs').visible = false;
         deskFurniture1.getObjectByName('sofa').visible = false;
@@ -233,7 +233,7 @@ export class HouseD {
         this.collidableObjects.push(deskFurniture1);
 
 
-        // Aggiungo una scrivania secondo piano a destra
+        // Add a desk on the second floor, right side
         const deskFurniture2 = new Furniture();
         deskFurniture2.getObjectByName('tableAndChairs').visible = false;
         deskFurniture2.getObjectByName('sofa').visible = false;

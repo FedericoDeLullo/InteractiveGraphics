@@ -1,51 +1,54 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 
 export class Fountain {
+    // The constructor initializes the fountain and its related properties.
     constructor(scene) {
-        this.scene = scene;
-        this.fountainGroup = new THREE.Group();
-        this.waterParticles = [];
-        this.particlePool = [];
-        this.bowlRadius = 5;
-        this.init();
+        this.scene = scene; // The Three.js scene to which the fountain will be added.
+        this.fountainGroup = new THREE.Group(); // A group to hold all parts of the fountain for easy positioning and scaling.
+        this.waterParticles = []; // An array to track active water particles.
+        this.particlePool = []; // A pool of pre-created particles for performance (to avoid creating new objects during the animation loop).
+        this.bowlRadius = 5; // The radius of the fountain's bowl.
+        this.init(); // Calls the initialization method to build the fountain geometry.
     }
 
+    // This method builds the 3D model of the fountain.
     init() {
-        // --- Materiali
+        // --- Materials
+        // Define materials with specific colors and properties (metalness, roughness) for a realistic look.
         const darkGrayMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5, roughness: 0.2 });
         const lightGrayMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.5, roughness: 0.2 });
         const waterMaterial = new THREE.MeshStandardMaterial({ color: 0x00bfff, transparent: true, opacity: 0.8, metalness: 0.8, roughness: 0.1 });
 
-        // --- Base della fontana (cilindro stretto e alto, grigio scuro)
-        const baseGeometry = new THREE.CylinderGeometry(1, 1.5, 4, 32);
+        // --- Fountain Base
+        const baseGeometry = new THREE.CylinderGeometry(1, 1.5, 4, 32); // A cylinder for the base.
         const base = new THREE.Mesh(baseGeometry, darkGrayMaterial);
-        base.position.y = 2;
+        base.position.y = 2; // Position the base on the Y-axis.
         this.fountainGroup.add(base);
 
-        // --- Vasca (semisfera concava più grande, grigio chiaro)
-        const semiSphereGeometry = new THREE.SphereGeometry(this.bowlRadius, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+        // --- Bowl
+        const semiSphereGeometry = new THREE.SphereGeometry(this.bowlRadius, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2); // A half-sphere for the bowl.
         const semiSphere = new THREE.Mesh(semiSphereGeometry, lightGrayMaterial);
-        semiSphere.scale.y = 0.5;
-        semiSphere.rotation.x = Math.PI;
+        semiSphere.scale.y = 0.5; // Flatten the sphere slightly.
+        semiSphere.rotation.x = Math.PI; // Invert the sphere to create a concave bowl shape.
         semiSphere.position.y = 4;
         this.fountainGroup.add(semiSphere);
 
-        // --- Superficie dell'acqua
-        const waterSurfaceGeometry = new THREE.CylinderGeometry(this.bowlRadius - 0.1, this.bowlRadius - 0.1, 0.1, 32);
+        // --- Water Surface
+        const waterSurfaceGeometry = new THREE.CylinderGeometry(this.bowlRadius - 0.1, this.bowlRadius - 0.1, 0.1, 32); // A thin cylinder for the water surface.
         const waterSurface = new THREE.Mesh(waterSurfaceGeometry, waterMaterial);
-        waterSurface.position.y = 4;
+        waterSurface.position.y = 4; // Position the water surface at the same height as the bowl.
         this.fountainGroup.add(waterSurface);
 
-        // --- Asta centrale (più dettagliata, grigio chiaro)
-        const columnGroup = new THREE.Group();
+        // --- Central Column
+        const columnGroup = new THREE.Group(); // Group to hold the column and its details.
 
-        // Asta principale
+        // Main column part
         const columnGeometry = new THREE.CylinderGeometry(0.2, 0.2, 3, 16);
         const column = new THREE.Mesh(columnGeometry, lightGrayMaterial);
         column.position.y = 5.5;
         columnGroup.add(column);
 
-        // Dettaglio alla base dell'asta
+        // Detail at the base of the column
         const columnBaseGeometry = new THREE.CylinderGeometry(0.3, 0.25, 0.5, 16);
         const columnBase = new THREE.Mesh(columnBaseGeometry, lightGrayMaterial);
         columnBase.position.y = 4.1;
@@ -53,67 +56,72 @@ export class Fountain {
 
         this.fountainGroup.add(columnGroup);
 
-        // Aggiunge la fontana alla scena
+        // Add the entire fountain group to the scene.
         this.fountainGroup.position.set(0, 0, 0);
         this.scene.add(this.fountainGroup);
 
-        // Pool di particelle
+        // Particle pool setup. Pre-creates a large number of water particles to be reused.
         const particleGeometry = new THREE.SphereGeometry(0.08, 8, 8);
-        for (let i = 0; i < 2000; i++) { // Aumentato il numero a 2000
+        for (let i = 0; i < 2000; i++) {
             const particle = new THREE.Mesh(particleGeometry, waterMaterial);
-            particle.visible = false;
+            particle.visible = false; // Make them invisible initially.
             this.fountainGroup.add(particle);
             this.particlePool.push(particle);
         }
     }
 
+    // A utility method to get an unused particle from the pool.
     getParticleFromPool() {
         for (let i = 0; i < this.particlePool.length; i++) {
             if (!this.particlePool[i].visible) {
                 return this.particlePool[i];
             }
         }
-        return null;
+        return null; // Return null if the pool is empty (all particles are in use).
     }
 
+    // The update method is called on every frame to animate the fountain.
     update() {
-        // Parametri per il getto d'acqua a spirale
-        const streamStart = new THREE.Vector3(0, 7.1, 0);
-        const gravity = -0.05;
-        const emissionRate = 0.1; // Ridotto il valore per aumentare l'emissione
-        const rotationSpeed = 0.05;
-        const spiralRadius = 1.5;
+        // Parameters for the spiral water stream effect.
+        const streamStart = new THREE.Vector3(0, 7.1, 0); // Starting point of the water stream.
+        const gravity = -0.05; // Gravity effect on the particles.
+        const emissionRate = 0.1; // Probability of emitting a new particle each frame.
+        const rotationSpeed = 0.05; // Speed of the spiral rotation.
+        const spiralRadius = 1.5; // Radius of the spiral.
 
-        // Emette una nuova particella
+        // Emit a new particle based on the emission rate.
         if (Math.random() > emissionRate) {
             const newParticle = this.getParticleFromPool();
             if (newParticle) {
-                // Calcola la posizione sulla spirale
+                // Calculate the position on the spiral path.
                 const angle = Date.now() * rotationSpeed;
                 const targetX = Math.cos(angle) * spiralRadius;
                 const targetZ = Math.sin(angle) * spiralRadius;
 
+                // Set initial position and velocity for the new particle.
                 newParticle.position.copy(streamStart);
                 newParticle.userData.velocity = new THREE.Vector3(
-                    targetX * 0.1,
-                    Math.random() * 0.1 + 0.3,
-                    targetZ * 0.1
+                    targetX * 0.1, // Horizontal velocity component.
+                    Math.random() * 0.1 + 0.3, // Upward vertical velocity component.
+                    targetZ * 0.1 // Horizontal velocity component.
                 );
                 newParticle.visible = true;
                 this.waterParticles.push(newParticle);
             }
         }
 
-        // Aggiorna le posizioni delle particelle esistenti
+        // Update positions of existing particles and check for collision with the bowl.
         for (let i = this.waterParticles.length - 1; i >= 0; i--) {
             const particle = this.waterParticles[i];
+            // Apply gravity to the particle's velocity.
             particle.userData.velocity.y += gravity;
+            // Update the particle's position based on its velocity.
             particle.position.add(particle.userData.velocity);
 
-            // Controlla se la particella è caduta nella vasca
+            // Check if the particle has fallen below the bowl's level or moved outside its radius.
             if (particle.position.y < 4 || Math.sqrt(particle.position.x * particle.position.x + particle.position.z * particle.position.z) > this.bowlRadius) {
-                particle.visible = false;
-                this.waterParticles.splice(i, 1);
+                particle.visible = false; // Hide the particle.
+                this.waterParticles.splice(i, 1); // Remove it from the active particles array.
             }
         }
     }

@@ -1,28 +1,28 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.module.js';
 
 /**
- * Gestisce la logica di esplosione e animazione della morte per i nemici.
+ * Manages the explosion and death animation logic for enemies.
  */
 export class EnemyDeathManager {
     constructor(scene, collidableObjects) {
         this.scene = scene;
         this.collidableObjects = collidableObjects;
-        this.bodyParts = []; // Array per le parti del corpo da animare
+        this.bodyParts = []; // Array for the body parts to animate
         this.raycaster = new THREE.Raycaster();
         this.down = new THREE.Vector3(0, -1, 0);
         this.deathSound = new Audio('sounds/body-smash.mp3');
     }
 
     /**
-     * Attiva l'animazione di esplosione per un nemico.
-     * @param {THREE.Group} enemyGroup - Il gruppo del nemico da smembrare.
-     * @param {THREE.Mesh} enemyModel - Il modello del nemico.
-     * @param {THREE.Mesh} head - La testa.
-     * @param {THREE.Mesh} leftArm - Il braccio sinistro.
-     * @param {THREE.Mesh} rightArm - Il braccio destro.
-     * @param {THREE.Mesh} leftLeg - La gamba sinistra.
-     * @param {THREE.Mesh} rightLeg - La gamba destra.
-     * @param {HTMLElement} healthBar - La barra della vita del nemico.
+     * Triggers the explosion animation for an enemy.
+     * @param {THREE.Group} enemyGroup - The enemy group to be dismembered.
+     * @param {THREE.Mesh} enemyModel - The enemy's model.
+     * @param {THREE.Mesh} head - The head.
+     * @param {THREE.Mesh} leftArm - The left arm.
+     * @param {THREE.Mesh} rightArm - The right arm.
+     * @param {THREE.Mesh} leftLeg - The left leg.
+     * @param {THREE.Mesh} rightLeg - The right leg.
+     * @param {HTMLElement} healthBar - The enemy's health bar.
      */
     explode(enemyGroup, enemyModel, head, leftArm, rightArm, leftLeg, rightLeg, healthBar) {
         this.deathSound.currentTime = 0;
@@ -74,8 +74,8 @@ export class EnemyDeathManager {
     }
 
     /**
-     * Aggiorna lo stato delle parti del corpo in animazione.
-     * @param {number} delta - Il tempo trascorso dall'ultimo frame.
+     * Updates the state of the animating body parts.
+     * @param {number} delta - The time elapsed since the last frame.
      */
     update(delta) {
         for (let i = this.bodyParts.length - 1; i >= 0; i--) {
@@ -115,7 +115,7 @@ export class EnemyDeathManager {
     }
 
     /**
-     * Restituisce il numero di parti del corpo attualmente in animazione.
+     * Returns the number of body parts currently being animated.
      */
     get activePartsCount() {
         return this.bodyParts.length;

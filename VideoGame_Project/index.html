@@ -1,65 +1,67 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
-    <title>Gioco 3D</title>
+    <title>Interactive Graphics VideoGame</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="blocker">
         <div id="instructions">
-            <p>Fai clic per giocare</p>
+            <p>Click to play</p>
             <p>
-                Muovi: WASD<br/>
-                Salta: SPAZIO<br/>
-                Interagisci: E<br/>
-                Apri/Chiudi Inventario: I<br/>
+                Move: ↑ ↓ ← →<br/>
+                Jump: SPACE<br/>
+                Interact: X<br/>
+                Open/Close Inventory: I<br/>
+                Shoot: Left Mouse Button / Touchpad<br/>
             </p>
         </div>
     </div>
-<div id="player-health-bar-container">
-    <div id="player-health-bar-inner"></div>
-</div>
 
-<div id="enemy-health-bar-container"></div>
+    <div id="player-health-bar-container">
+        <div id="player-health-bar-inner"></div>
+    </div>
 
+    <div id="enemy-health-bar-container"></div>
 
-    <div id="interactive-message" class="message">Premi X per aprire la cassa</div>
-    <div id="collect-message" class="message">Premi X per raccogliere l'arma</div>
+    <div id="interactive-message" class="message">Press X to open chest</div>
+    <div id="collect-message" class="message">Press X to collect weapon</div>
     <div id="notification-message"></div>
 
     <div id="inventory-container">
-        <h2>Inventario</h2>
+        <h2>Inventory</h2>
         <div id="inventory-items"></div>
     </div>
 
     <div id="equipped-weapon-hud">
         <div id="equipped-weapon-image"></div>
         <div id="equipped-weapon-info">
-            <p><strong>Arma: </strong><span id="equipped-weapon-name">Pugno</span></p>
-            <p><strong>Danno: </strong><span id="equipped-weapon-damage">0</span></p>
-            <p><strong>Portata: </strong><span id="equipped-weapon-range">0</span></p>
+            <p><strong>Weapon: </strong><span id="equipped-weapon-name">Fist</span></p>
+            <p><strong>Damage: </strong><span id="equipped-weapon-damage">0</span></p>
+            <p><strong>Range: </strong><span id="equipped-weapon-range">0</span></p>
         </div>
     </div>
 
-
-
     <div id="crosshair" class="hidden"></div>
-<div id="game-over-screen" style="display: none;">
-    <h1>Game Over</h1>
-    <div class="game-over-buttons">
-        <button id="restart-button">Riprova Ancora</button>
-        <button id="exit-button">Esci</button>
+
+    <div id="game-over-screen" style="display: none;">
+        <h1>Game Over</h1>
+        <div class="game-over-buttons">
+            <button id="restart-button">Try Again</button>
+            <button id="exit-button">Exit</button>
+        </div>
     </div>
-</div>
-<div id="victory-screen" style="display: none;">
-    <h1>VITTORIA!</h1>
-    <p>Hai sconfitto tutti i nemici!</p>
-    <div class="victory-buttons">
-        <button id="victory-restart-button">Play Again</button>
-        <button id="victory-exit-button">Quit</button>
+
+    <div id="victory-screen" style="display: none;">
+        <h1>VICTORY!</h1>
+        <p>You have defeated all enemies!</p>
+        <div class="victory-buttons">
+            <button id="victory-restart-button">Play Again</button>
+            <button id="victory-exit-button">Quit</button>
+        </div>
     </div>
-</div>
+
     <script type="importmap">
         {
           "imports": {

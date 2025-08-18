@@ -10,18 +10,18 @@ import { Fountain } from '../houses/Fountain.js';
 
 export class GameWorld {
     /**
-     * @param {THREE.Scene} scene - La scena Three.js in cui costruire il mondo.
-     * @param {HTMLElement} healthBarContainer - Il container HTML per le barre della vita dei nemici.
-     * @param {object} weaponModels - L'oggetto contenente i modelli delle armi.
-     * @param {THREE.Camera} playerCamera - La telecamera del giocatore.
-     * @param {Array} playerObjects - Gli oggetti collidibili del giocatore.
-     * @param {Function} playerDamageCallback - Funzione per infliggere danno al giocatore.
+     * @param {THREE.Scene} scene - The Three.js scene to build the world in.
+     * @param {HTMLElement} healthBarContainer - The HTML container for enemy health bars.
+     * @param {object} weaponModels - An object containing weapon models.
+     * @param {THREE.Camera} playerCamera - The player's camera.
+     * @param {Array} playerObjects - The player's collidable objects.
+     * @param {Function} playerDamageCallback - The function to inflict damage on the player.
      */
     constructor(scene, healthBarContainer, weaponModels, playerCamera, playerObjects, playerDamageCallback) {
         this.scene = scene;
         this.houses = [];
         this.trees = [];
-        this.collidableObjects = []; // Contiene tutti gli oggetti solidi del mondo
+        this.collidableObjects = []; // Contains all solid objects in the world
         this.chests = [];
         this.collectibleItems = [];
         this.enemies = [];
@@ -30,10 +30,10 @@ export class GameWorld {
         this.playerCamera = playerCamera;
         this.playerObjects = playerObjects;
         this.playerDamageCallback = playerDamageCallback;
-        this.enemyProjectiles = []; // Array per i proiettili dei nemici
-        this.fountain = null; // Proprietà per la fontana
+        this.enemyProjectiles = []; // Array for enemy projectiles
+        this.fountain = null; // Property for the fountain
 
-        // Centralizza la logica di rimozione dei nemici
+        // Centralize enemy removal logic
         this.enemyDeathManager = new EnemyDeathManager(this.scene, this.collidableObjects, (enemyMesh) => {
             const collidableIndex = this.collidableObjects.indexOf(enemyMesh);
             if (collidableIndex > -1) {
@@ -81,9 +81,9 @@ export class GameWorld {
     }
 
     /**
-     * Crea un numero specificato di forzieri in posizioni casuali di una casa.
-     * @param {THREE.Vector3[]} positionArray - L'array di posizioni disponibili per i forzieri.
-     * @param {number} numChests - Il numero di forzieri da creare.
+     * Creates a specified number of chests in random positions within a house.
+     * @param {THREE.Vector3[]} positionArray - The array of available positions for the chests.
+     * @param {number} numChests - The number of chests to create.
      */
     createChestsInHouse(positionArray, numChests) {
         const availablePositions = [...positionArray];
@@ -100,12 +100,12 @@ export class GameWorld {
     }
 
     /**
-     * Crea un albero e lo aggiunge alla scena.
-     * @param {THREE.Vector3} position - La posizione dell'albero.
-     * @param {number} trunkHeight - L'altezza del tronco.
-     * @param {number} trunkRadius - Il raggio del tronco.
-     * @param {number} foliageHeight - L'altezza del fogliame.
-     * @param {number} foliageRadius - Il raggio del fogliame.
+     * Creates a tree and adds it to the scene.
+     * @param {THREE.Vector3} position - The position of the tree.
+     * @param {number} trunkHeight - The height of the trunk.
+     * @param {number} trunkRadius - The radius of the trunk.
+     * @param {number} foliageHeight - The height of the foliage.
+     * @param {number} foliageRadius - The radius of the foliage.
      */
     createTree(position, trunkHeight, trunkRadius, foliageHeight, foliageRadius) {
         const treeGroup = new THREE.Group();
@@ -128,7 +128,7 @@ export class GameWorld {
     }
 
     /**
-     * Crea il terreno e lo aggiunge alla scena.
+     * Creates the ground and adds it to the scene.
      */
     createGround() {
         const groundGeometry = new THREE.BoxGeometry(200, 0.1, 200);
@@ -140,7 +140,7 @@ export class GameWorld {
     }
 
     /**
-     * Crea le strade e le aggiunge alla scena.
+     * Creates the roads and adds them to the scene.
      */
     createRoads() {
         this.createRoad(20, 100, 0, 0);
@@ -153,11 +153,11 @@ export class GameWorld {
     }
 
     /**
-     * Crea una strada e la aggiunge alla scena.
-     * @param {number} width - La larghezza della strada.
-     * @param {number} depth - La profondità della strada.
-     * @param {number} positionX - La posizione X della strada.
-     * @param {number} positionZ - La posizione Z della strada.
+     * Creates a road and adds it to the scene.
+     * @param {number} width - The width of the road.
+     * @param {number} depth - The depth of the road.
+     * @param {number} positionX - The X position of the road.
+     * @param {number} positionZ - The Z position of the road.
      */
     createRoad(width, depth, positionX, positionZ) {
         const roadGeometry = new THREE.BoxGeometry(width, 0.2, depth);
@@ -169,7 +169,7 @@ export class GameWorld {
     }
 
     /**
-     * Crea gli alberi e li aggiunge alla scena.
+     * Creates the trees and adds them to the scene.
      */
     createTrees() {
         this.createTree(new THREE.Vector3(-25, 0, -20), 10, 1, 10, 5);
@@ -179,7 +179,7 @@ export class GameWorld {
     }
 
     /**
-     * Crea le case e le aggiunge alla scena.
+     * Creates the houses and adds them to the scene.
      */
     createHouses() {
         const houseA = new HouseA(this.scene, this.collidableObjects);
@@ -201,7 +201,7 @@ export class GameWorld {
     }
 
     /**
-     * Genera e aggiunge nemici al mondo di gioco.
+     * Spawns and adds enemies to the game world.
      */
     spawnEnemies() {
         const enemy1 = new Enemy(this.scene, this.healthBarContainer, new THREE.Vector3(-20, 1, -20), 100, this.playerCamera, this.playerObjects, this.playerDamageCallback, this.collidableObjects, this.enemyDeathManager, this.enemyProjectiles);
@@ -213,7 +213,7 @@ export class GameWorld {
     }
 
     /**
-     * Crea la fontana al centro del mondo di gioco.
+     * Creates the fountain at the center of the game world.
      */
     createFountain() {
         this.fountain = new Fountain(this.scene);
@@ -221,17 +221,17 @@ export class GameWorld {
     }
 
     /**
-     * Aggiorna lo stato dei nemici e delle barre della vita.
-     * @param {number} delta - Il tempo trascorso dall'ultimo frame.
-     * @param {THREE.Vector3} playerPosition - La posizione del giocatore.
-     * @param {THREE.Camera} camera - La telecamera della scena.
-     * @param {THREE.WebGLRenderer} renderer - Il renderer Three.js.
+     * Updates the state of enemies and health bars.
+     * @param {number} delta - The time elapsed since the last frame.
+     * @param {THREE.Vector3} playerPosition - The player's position.
+     * @param {THREE.Camera} camera - The scene's camera.
+     * @param {THREE.WebGLRenderer} renderer - The Three.js renderer.
      */
     update(delta, playerPosition, camera, renderer) {
         this.enemyDeathManager.update(delta);
         this.fountain.update();
 
-        // Aggiorna i nemici e le loro barre della vita, rimuovendo quelli morti
+        // Update enemies and their health bars, removing those that are dead
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
             enemy.update(delta, playerPosition);
@@ -242,10 +242,10 @@ export class GameWorld {
         }
 
         const projectilesToRemove = [];
-        // Unisce gli oggetti del giocatore e del mondo per un unico raycast
+        // Combines player and world objects for a single raycast
         const allCollidableObjects = [...this.playerObjects, ...this.collidableObjects];
 
-        // Aggiorna e gestisce i proiettili dei nemici
+        // Updates and manages enemy projectiles
         this.enemyProjectiles.forEach((projectile) => {
             const previousPosition = projectile.position.clone();
             projectile.position.addScaledVector(projectile.velocity, delta);
@@ -262,7 +262,7 @@ export class GameWorld {
             }
         });
 
-        // Rimuove i proiettili che hanno colpito qualcosa o hanno superato la loro portata
+        // Removes projectiles that have hit something or have exceeded their range
         projectilesToRemove.forEach(projectile => {
             this.scene.remove(projectile);
             const index = this.enemyProjectiles.indexOf(projectile);

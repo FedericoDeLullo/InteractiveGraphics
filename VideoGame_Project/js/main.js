@@ -4,53 +4,72 @@ import { GameWorld } from './GameWorld.js';
 import { Inventory } from './Inventory.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.126.0/examples/jsm/loaders/GLTFLoader.js';
 import { WeaponHandler } from './WeaponHandler.js';
-import { Enemy } from './Enemy.js';
 
+// --- Configurazione del Gioco (Centralizzata) ---
+const config = {
+    player: {
+        health: 100,
+        size: 2,
+        jumpVelocity: 30,
+        acceleration: 500.0,
+        drag: 20.0,
+        gravity: 9.8 * 10.0
+    },
+    weapons: {
+        fist: {
+            damage: 5,
+            range: 15,
+            name: 'Pugno',
+            imagePath: null,
+            fireMode: 'single'
+        },
+        models: [
+            { path: 'models/pistol.glb', imagePath: 'img/pistol.png', stats: { damage: 10, range: 20, name: 'Pistola', scale: 0.3, fireMode: 'single' } },
+            { path: 'models/rifle.glb', imagePath: 'img/rifle.png', stats: { damage: 20, range: 40, name: 'Fucile', scale: 2.2, fireMode: 'auto' } },
+            { path: 'models/rocketLauncher.glb', imagePath: 'img/rocketLauncher.png', stats: { damage: 50, range: 60, name: 'Lanciarazzi', scale: 0.2, fireMode: 'single' } }
+        ]
+    },
+    gameplay: {
+        attackCooldown: 0.1,
+        collectibleRange: 6,
+        chestRange: 6
+    }
+};
+
+// --- Variabili di Gioco ---
 let scene, camera, renderer;
 let controls;
 let gameWorld;
 let inventory;
 let enemyHealthBarContainer;
 let weaponModels = [];
-let weaponPaths = [];
 
 let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
 let canJump = false;
-let isCollecting = false;
+let isShooting = false;
 let isInventoryOpen = false;
 let isOpeningChest = false;
 let isGameOver = false;
 let isGameWon = false;
 
-let isShooting = false;
-const attackCooldown = 0.1;
 let lastAttackTime = 0;
-
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const raycaster = new THREE.Raycaster();
 const clock = new THREE.Clock();
 
-const playerSize = 3;
-let playerHealth = 100;
-
+let playerHealth = config.player.health;
+const playerSize = config.player.size;
 let crosshair = null;
 
-let currentWeapon = {
-    damage: 5,
-    range: 15,
-    name: 'Pugno',
-    imagePath: null,
-    fireMode: 'single'
-};
-
+let currentWeapon = { ...config.weapons.fist };
 let equippedWeaponMesh = null;
 let weaponHandler;
 
-// Riferimenti ai nuovi elementi DOM
+// --- Riferimenti al DOM ---
 const victoryScreen = document.getElementById('victory-screen');
 const victoryRestartButton = document.getElementById('victory-restart-button');
 const victoryExitButton = document.getElementById('victory-exit-button');
@@ -59,6 +78,20 @@ const restartButton = document.getElementById('restart-button');
 const exitButton = document.getElementById('exit-button');
 const blocker = document.getElementById('blocker');
 const instructions = document.getElementById('instructions');
+const interactMessage = document.getElementById('interactive-message');
+const collectMessage = document.getElementById('collect-message');
+const notification = document.getElementById('notification-message');
+
+// --- Funzioni di Utilità ---
+function showNotification(message) {
+    if (notification) {
+        notification.innerHTML = message;
+        notification.style.display = 'block';
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 4000);
+    }
+}
 
 function updatePlayerHealth(damage) {
     playerHealth = Math.max(0, playerHealth - damage);
@@ -72,55 +105,70 @@ function updatePlayerHealth(damage) {
 }
 
 function updateEquippedWeaponHUD() {
-    const hud = document.getElementById('equipped-weapon-hud');
     const nameSpan = document.getElementById('equipped-weapon-name');
     const damageSpan = document.getElementById('equipped-weapon-damage');
     const rangeSpan = document.getElementById('equipped-weapon-range');
     const imageDiv = document.getElementById('equipped-weapon-image');
 
-    if (currentWeapon.name === 'Pugno') {
-        nameSpan.textContent = currentWeapon.name;
-        damageSpan.textContent = currentWeapon.damage;
-        rangeSpan.textContent = currentWeapon.range;
-        imageDiv.innerHTML = '';
-        if (crosshair) {
-            crosshair.classList.add('hidden');
-        }
-    } else {
-        nameSpan.textContent = currentWeapon.name;
-        damageSpan.textContent = currentWeapon.damage;
-        rangeSpan.textContent = currentWeapon.range;
+    if (nameSpan) nameSpan.textContent = currentWeapon.name;
+    if (damageSpan) damageSpan.textContent = currentWeapon.damage;
+    if (rangeSpan) rangeSpan.textContent = currentWeapon.range;
 
-        if (currentWeapon.imagePath) {
-            imageDiv.innerHTML = `<img src="${currentWeapon.imagePath}" alt="${currentWeapon.name}">`;
-        }
-        if (crosshair) {
-            crosshair.classList.remove('hidden');
-        }
+    if (imageDiv) {
+        imageDiv.innerHTML = currentWeapon.imagePath ? `<img src="${currentWeapon.imagePath}" alt="${currentWeapon.name}">` : '';
+    }
+    if (crosshair) {
+        crosshair.classList.toggle('hidden', currentWeapon.name === config.weapons.fist.name);
     }
 }
 
+function showGameOverScreen() {
+    isGameOver = true;
+    gameOverScreen.style.display = 'flex';
+    blocker.style.display = 'flex';
+    if (controls.isLocked) {
+        controls.unlock();
+    }
+    if (crosshair) {
+        crosshair.classList.add('hidden');
+    }
+}
+
+function showVictoryScreen() {
+    isGameWon = true;
+    victoryScreen.style.display = 'flex';
+    blocker.style.display = 'flex';
+    if (controls.isLocked) {
+        controls.unlock();
+    }
+    if (crosshair) {
+        crosshair.classList.add('hidden');
+    }
+}
+
+// --- Funzioni di Caricamento e Inizializzazione ---
 function loadModels() {
     const loader = new GLTFLoader();
-    weaponPaths = [
-        { path: 'models/pistol.glb', imagePath: 'img/pistol.png', stats: { damage: 10, range: 20, name: 'Pistola', scale: 0.3, fireMode: 'single' } },
-        { path: 'models/rifle.glb', imagePath: 'img/rifle.png', stats: { damage: 20, range: 40, name: 'Fucile', scale: 2.2, fireMode: 'auto' } },
-        { path: 'models/rocketLauncher.glb', imagePath: 'img/rocketLauncher.png', stats: { damage: 50, range: 60, name: 'Lanciarazzi', scale: 0.2, fireMode: 'single' } }
-    ];
-
     let loadedCount = 0;
-    weaponPaths.forEach(weapon => {
+    const modelsToLoad = config.weapons.models;
+
+    modelsToLoad.forEach(weapon => {
         loader.load(weapon.path, (gltf) => {
             const model = gltf.scene;
+            // Correzione: Assegna le proprietà una per una per evitare l'errore
             model.damage = weapon.stats.damage;
             model.range = weapon.stats.range;
             model.name = weapon.stats.name;
             model.imagePath = weapon.imagePath;
+            model.fireMode = weapon.stats.fireMode;
+
+            // Imposta la scala correttamente
             model.scale.set(weapon.stats.scale, weapon.stats.scale, weapon.stats.scale);
+
             weaponModels.push(model);
             loadedCount++;
 
-            if (loadedCount === weaponPaths.length) {
+            if (loadedCount === modelsToLoad.length) {
                 console.log("Tutti i modelli delle armi sono stati caricati.");
                 init();
             }
@@ -131,6 +179,14 @@ function loadModels() {
 }
 
 function init() {
+    setupSceneAndCamera();
+    setupGameObjects();
+    setupEventListeners();
+    updateEquippedWeaponHUD();
+    animate();
+}
+
+function setupSceneAndCamera() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xcce0ff);
 
@@ -150,21 +206,21 @@ function init() {
     dirLight.position.set(-3, 10, -10);
     scene.add(dirLight);
 
-    enemyHealthBarContainer = document.getElementById('enemy-health-bar-container');
     const playerHitbox = new THREE.Mesh(new THREE.BoxGeometry(playerSize, playerSize, playerSize), new THREE.MeshBasicMaterial({ visible: false }));
     playerHitbox.name = 'playerHitbox';
     camera.add(playerHitbox);
+}
 
-    // Crea il mondo di gioco e ottieni la lista degli oggetti collidibili (muri, terreno, etc.)
+function setupGameObjects() {
+    enemyHealthBarContainer = document.getElementById('enemy-health-bar-container');
+    const playerHitbox = camera.children.find(child => child.name === 'playerHitbox');
+
     gameWorld = new GameWorld(scene, enemyHealthBarContainer, weaponModels, camera, [playerHitbox], updatePlayerHealth);
-
-    // Crea un'unica lista di oggetti collidibili per il giocatore e i proiettili
     const collidableObjects = [...gameWorld.collidableObjects];
+    weaponHandler = new WeaponHandler(scene, camera, gameWorld, currentWeapon, collidableObjects);
 
     inventory = new Inventory('inventory-items');
     crosshair = document.getElementById('crosshair');
-    // Passa la lista unificata di collidableObjects a WeaponHandler
-    weaponHandler = new WeaponHandler(scene, camera, gameWorld, currentWeapon, collidableObjects);
 
     inventory.onDiscardCallback = (discardedItem) => {
         const playerPosition = controls.getObject().position.clone();
@@ -173,10 +229,7 @@ function init() {
             const newWeapon = originalWeaponModel.clone();
             newWeapon.position.copy(playerPosition);
             newWeapon.position.y -= 0.5;
-            newWeapon.damage = discardedItem.damage;
-            newWeapon.range = discardedItem.range;
-            newWeapon.name = discardedItem.name;
-
+            Object.assign(newWeapon, discardedItem); // Copia le proprietà
             gameWorld.scene.add(newWeapon);
             gameWorld.collectibleItems.push(newWeapon);
         }
@@ -185,22 +238,9 @@ function init() {
             camera.remove(equippedWeaponMesh);
             equippedWeaponMesh = null;
             weaponHandler.equippedWeaponMesh = null;
-            currentWeapon = {
-                damage: 5,
-                range: 15,
-                name: 'Pugno',
-                imagePath: null,
-                fireMode: 'single'
-            };
+            currentWeapon = { ...config.weapons.fist };
             updateEquippedWeaponHUD();
-            const notification = document.getElementById('notification-message');
-            if (notification) {
-                notification.innerHTML = `Hai scartato ${discardedItem.name}. Ora usi il pugno.`;
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                }, 4000);
-            }
+            showNotification(`Hai scartato ${discardedItem.name}. Ora usi il pugno.`);
         }
         controls.lock();
         isInventoryOpen = false;
@@ -237,26 +277,11 @@ function init() {
             }
 
             camera.add(equippedWeaponMesh);
-            console.log(`Hai equipaggiato l'arma: ${equippedItem.name}`);
-
-            currentWeapon.damage = equippedItem.damage;
-            currentWeapon.range = equippedItem.range;
-            currentWeapon.name = equippedItem.name;
-            currentWeapon.imagePath = equippedItem.imagePath;
-            currentWeapon.fireMode = equippedItem.fireMode;
-
+            Object.assign(currentWeapon, equippedItem);
             weaponHandler.currentWeapon = currentWeapon;
             weaponHandler.equippedWeaponMesh = equippedWeaponMesh;
             updateEquippedWeaponHUD();
-
-            const notification = document.getElementById('notification-message');
-            if (notification) {
-                notification.innerHTML = `Hai equipaggiato ${equippedItem.name}!<br>Danno: ${currentWeapon.damage}, Portata: ${currentWeapon.range}`;
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                }, 4000);
-            }
+            showNotification(`Hai equipaggiato ${equippedItem.name}!<br>Danno: ${currentWeapon.damage}, Portata: ${currentWeapon.range}`);
         }
 
         controls.lock();
@@ -265,17 +290,12 @@ function init() {
     };
 
     controls = new PointerLockControls(camera, document.body);
-
     if (instructions && blocker) {
-        instructions.addEventListener('click', () => {
-            controls.lock();
-        });
-
+        instructions.addEventListener('click', () => controls.lock());
         controls.addEventListener('lock', () => {
             instructions.style.display = 'none';
             blocker.style.display = 'none';
         });
-
         controls.addEventListener('unlock', () => {
             if (!isInventoryOpen && !isGameOver && !isGameWon) {
                 blocker.style.display = 'flex';
@@ -283,11 +303,13 @@ function init() {
             }
         });
     }
-
     scene.add(controls.getObject());
+}
 
-    const onKeyDown = (event) => {
-        if (isGameOver || isGameWon) return; // Impedisce input dopo la fine del gioco
+// --- Gestione Eventi Unificata ---
+function setupEventListeners() {
+    document.addEventListener('keydown', (event) => {
+        if (isGameOver || isGameWon) return;
         switch (event.code) {
             case 'ArrowUp':
             case 'KeyW':
@@ -307,29 +329,22 @@ function init() {
                 break;
             case 'Space':
                 if (canJump && !isOpeningChest) {
-                    velocity.y += 30;
+                    velocity.y += config.player.jumpVelocity;
                     canJump = false;
                 }
                 break;
-            case 'KeyE':
-                isCollecting = true;
-                break;
             case 'KeyI':
+                toggleInventory();
+                break;
+            case 'KeyX':
                 if (controls.isLocked) {
-                    controls.unlock();
-                    isInventoryOpen = true;
-                    document.getElementById('inventory-container').style.display = 'block';
-                    inventory.render();
-                } else if (isInventoryOpen) {
-                    controls.lock();
-                    isInventoryOpen = false;
-                    document.getElementById('inventory-container').style.display = 'none';
+                    interactWithObject();
                 }
                 break;
         }
-    };
+    });
 
-    const onKeyUp = (event) => {
+    document.addEventListener('keyup', (event) => {
         if (isGameOver || isGameWon) return;
         switch (event.code) {
             case 'ArrowUp':
@@ -348,81 +363,87 @@ function init() {
             case 'KeyD':
                 moveRight = false;
                 break;
-            case 'KeyE':
-                isCollecting = false;
-                break;
         }
-    };
+    });
 
-    const onMouseDown = (event) => {
+    document.addEventListener('mousedown', (event) => {
         if (isGameOver || isGameWon) return;
         if (event.button === 0 && controls.isLocked && !isInventoryOpen) {
             isShooting = true;
         }
-    };
+    });
 
-    const onMouseUp = (event) => {
+    document.addEventListener('mouseup', (event) => {
         if (isGameOver || isGameWon) return;
         if (event.button === 0) {
             isShooting = false;
         }
-    };
-
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
-    document.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('mouseup', onMouseUp);
-
-    document.addEventListener('keydown', (event) => {
-        if (isGameOver || isGameWon) return;
-        if (event.code === 'KeyX' && controls.isLocked) {
-            const playerPos = controls.getObject().position;
-            for (const chest of gameWorld.chests) {
-                const dist = chest.group.position.distanceTo(playerPos);
-                if (dist < 6 && !chest.isOpen && !isOpeningChest) {
-                    isOpeningChest = true;
-                    chest.open((item) => {
-                        if (item) {
-                            gameWorld.collectibleItems.push(item);
-                        }
-                        isOpeningChest = false;
-                    });
-                    break;
-                }
-            }
-        }
     });
 
-    // Gestori di eventi per i pulsanti di Game Over
-    if (restartButton) {
-        restartButton.addEventListener('click', () => {
-            location.reload();
-        });
-    }
-
-    if (exitButton) {
-        exitButton.addEventListener('click', () => {
-            window.close();
-        });
-    }
-
-    // NUOVO: Gestori di eventi per i pulsanti di vittoria
-    if (victoryRestartButton) {
-        victoryRestartButton.addEventListener('click', () => {
-            location.reload();
-        });
-    }
-
-    if (victoryExitButton) {
-        victoryExitButton.addEventListener('click', () => {
-            window.close();
-        });
-    }
-
-    updateEquippedWeaponHUD();
-    animate();
+    // Gestori per i pulsanti di fine gioco
+    if (restartButton) restartButton.addEventListener('click', () => location.reload());
+    if (exitButton) exitButton.addEventListener('click', () => window.close());
+    if (victoryRestartButton) victoryRestartButton.addEventListener('click', () => location.reload());
+    if (victoryExitButton) victoryExitButton.addEventListener('click', () => window.close());
 }
 
+function toggleInventory() {
+    isInventoryOpen = !isInventoryOpen;
+    if (isInventoryOpen) {
+        controls.unlock();
+        document.getElementById('inventory-container').style.display = 'block';
+        inventory.render();
+    } else {
+        controls.lock();
+        document.getElementById('inventory-container').style.display = 'none';
+    }
+}
+
+function interactWithObject() {
+    const playerPos = controls.getObject().position;
+
+    // Cerca una cassa vicina
+    for (const chest of gameWorld.chests) {
+        const dist = chest.group.position.distanceTo(playerPos);
+        if (dist < config.gameplay.chestRange && !chest.isOpen && !isOpeningChest) {
+            isOpeningChest = true;
+            chest.open((item) => {
+                if (item) {
+                    gameWorld.collectibleItems.push(item);
+                }
+                isOpeningChest = false;
+            });
+            return;
+        }
+    }
+
+    // Cerca un oggetto da raccogliere
+    for (const item of gameWorld.collectibleItems) {
+        const dist = item.position.distanceTo(playerPos);
+        if (dist < config.gameplay.collectibleRange) {
+            const originalModelData = config.weapons.models.find(m => m.stats.name === item.name);
+            if (originalModelData) {
+                const itemData = {
+                    name: item.name,
+                    damage: item.damage,
+                    range: item.range,
+                    imagePath: originalModelData.imagePath,
+                    fireMode: originalModelData.stats.fireMode
+                };
+                inventory.addItem(itemData);
+                if (!equippedWeaponMesh) {
+                    inventory.onEquipCallback(itemData);
+                }
+                gameWorld.scene.remove(item);
+                gameWorld.collectibleItems = gameWorld.collectibleItems.filter(i => i !== item);
+                showNotification(`Hai raccolto ${item.name}!`);
+            }
+            return;
+        }
+    }
+}
+
+// --- Loop di Animazione ---
 function animate() {
     requestAnimationFrame(animate);
 
@@ -432,188 +453,93 @@ function animate() {
 
     const delta = clock.getDelta();
     const elapsedTime = clock.getElapsedTime();
-    const playerHeight = playerSize;
 
-    // NUOVO: Logica di controllo della vittoria
     if (gameWorld.enemies.length === 0) {
         showVictoryScreen();
         return;
     }
 
     if (controls.isLocked && !isInventoryOpen) {
-        const acceleration = 500.0;
-        const drag = 20.0;
-
-        velocity.x -= velocity.x * drag * delta;
-        velocity.z -= velocity.z * drag * delta;
-
-        if (isOpeningChest) {
-            velocity.y = 0;
-        } else {
-            velocity.y -= 9.8 * 10.0 * delta;
-        }
-
-        direction.z = Number(moveForward) - Number(moveBackward);
-        direction.x = Number(moveRight) - Number(moveLeft);
-        direction.normalize();
-
-        if (moveForward || moveBackward) {
-            const movementVector = new THREE.Vector3();
-            camera.getWorldDirection(movementVector);
-            movementVector.y = 0;
-            movementVector.normalize();
-            movementVector.multiplyScalar(direction.z * 0.1);
-
-            raycaster.set(controls.getObject().position, movementVector);
-            const intersections = raycaster.intersectObjects(gameWorld.collidableObjects, true);
-
-            if (intersections.length === 0 || intersections[0].distance > 1.0) {
-                velocity.z -= direction.z * acceleration * delta;
-            } else {
-                velocity.z = 0;
-            }
-        }
-
-        if (moveLeft || moveRight) {
-            const movementVector = new THREE.Vector3();
-            camera.getWorldDirection(movementVector);
-            const crossVector = new THREE.Vector3(0, 1, 0);
-            movementVector.cross(crossVector);
-            movementVector.multiplyScalar(-direction.x * 0.1);
-
-            raycaster.set(controls.getObject().position, movementVector);
-            const intersections = raycaster.intersectObjects(gameWorld.collidableObjects, true);
-
-            if (intersections.length === 0 || intersections[0].distance > 1.0) {
-                velocity.x -= direction.x * acceleration * delta;
-            } else {
-                velocity.x = 0;
-            }
-        }
-
-        controls.moveRight(-velocity.x * delta);
-        controls.moveForward(-velocity.z * delta);
-        controls.getObject().position.y += velocity.y * delta;
-
-        if (!isOpeningChest) {
-            const downwardRaycaster = new THREE.Raycaster(controls.getObject().position, new THREE.Vector3(0, -1, 0), 0, playerHeight);
-            const groundIntersects = downwardRaycaster.intersectObjects(gameWorld.collidableObjects, true);
-
-            if (groundIntersects.length > 0) {
-                const distanceToGround = groundIntersects[0].distance;
-                if (distanceToGround <= playerHeight) {
-                    velocity.y = Math.max(0, velocity.y);
-                    controls.getObject().position.y = controls.getObject().position.y - distanceToGround + playerHeight;
-                    canJump = true;
-                } else {
-                    canJump = false;
-                }
-            } else {
-                canJump = false;
-            }
-        }
-
-        if (isShooting && elapsedTime - lastAttackTime > attackCooldown) {
-            if (currentWeapon.fireMode === 'auto') {
-                weaponHandler.shoot();
-                lastAttackTime = elapsedTime;
-            } else if (currentWeapon.fireMode === 'single') {
-                weaponHandler.shoot();
-                lastAttackTime = elapsedTime;
-                isShooting = false;
-            }
-        }
-
+        updatePlayerMovement(delta);
+        updateShooting(elapsedTime);
         gameWorld.update(delta, controls.getObject().position, camera, renderer);
     }
 
     weaponHandler.update(delta);
+    updateInteractionMessages();
+    renderer.render(scene, camera);
+}
 
+function updatePlayerMovement(delta) {
+    velocity.x -= velocity.x * config.player.drag * delta;
+    velocity.z -= velocity.z * config.player.drag * delta;
+
+    velocity.y -= isOpeningChest ? 0 : config.player.gravity * delta;
+
+    direction.z = Number(moveForward) - Number(moveBackward);
+    direction.x = Number(moveRight) - Number(moveLeft);
+    direction.normalize();
+
+    if (moveForward || moveBackward) velocity.z -= direction.z * config.player.acceleration * delta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * config.player.acceleration * delta;
+
+    controls.moveRight(-velocity.x * delta);
+    controls.moveForward(-velocity.z * delta);
+    controls.getObject().position.y += velocity.y * delta;
+
+    if (!isOpeningChest) {
+        const downwardRaycaster = new THREE.Raycaster(controls.getObject().position, new THREE.Vector3(0, -1, 0), 0, playerSize);
+        const groundIntersects = downwardRaycaster.intersectObjects(gameWorld.collidableObjects, true);
+
+        if (groundIntersects.length > 0) {
+            const distanceToGround = groundIntersects[0].distance;
+            if (distanceToGround <= playerSize) {
+                velocity.y = Math.max(0, velocity.y);
+                controls.getObject().position.y = controls.getObject().position.y - distanceToGround + playerSize;
+                canJump = true;
+            } else {
+                canJump = false;
+            }
+        } else {
+            canJump = false;
+        }
+    }
+}
+
+function updateShooting(elapsedTime) {
+    if (isShooting && elapsedTime - lastAttackTime > config.gameplay.attackCooldown) {
+        weaponHandler.shoot();
+        lastAttackTime = elapsedTime;
+        if (currentWeapon.fireMode === 'single') {
+            isShooting = false;
+        }
+    }
+}
+
+function updateInteractionMessages() {
     const playerPos = controls.getObject().position;
-    const interactMessage = document.getElementById('interactive-message');
-    const collectMessage = document.getElementById('collect-message');
-    const notification = document.getElementById('notification-message');
-
     let nearChest = false;
     let nearCollectible = false;
-    let collectibleToCollect = null;
 
     for (const chest of gameWorld.chests) {
-        const dist = chest.group.position.distanceTo(playerPos);
-        if (dist < 6 && !chest.isOpen) {
+        if (chest.group.position.distanceTo(playerPos) < config.gameplay.chestRange && !chest.isOpen) {
             nearChest = true;
             break;
         }
     }
 
     for (const item of gameWorld.collectibleItems) {
-        const dist = item.position.distanceTo(playerPos);
-        if (dist < 6) {
+        if (item.position.distanceTo(playerPos) < config.gameplay.collectibleRange) {
             nearCollectible = true;
-            collectibleToCollect = item;
             break;
         }
     }
 
     if (interactMessage) {
-        if (nearChest && controls.isLocked) {
-            interactMessage.style.display = 'block';
-        } else {
-            interactMessage.style.display = 'none';
-        }
+        interactMessage.style.display = nearChest && controls.isLocked ? 'block' : 'none';
     }
-
     if (collectMessage) {
-        if (nearCollectible && controls.isLocked) {
-            collectMessage.style.display = 'block';
-            if (isCollecting) {
-                if (collectibleToCollect) {
-                    const originalModelData = weaponPaths.find(m => m.stats.name === collectibleToCollect.name);
-                    const itemData = {
-                        name: collectibleToCollect.name,
-                        damage: collectibleToCollect.damage,
-                        range: collectibleToCollect.range,
-                        imagePath: originalModelData.imagePath,
-                        fireMode: originalModelData.stats.fireMode
-                    };
-                    inventory.addItem(itemData);
-                    if (!equippedWeaponMesh) {
-                        inventory.onEquipCallback(itemData);
-                    }
-                    gameWorld.scene.remove(collectibleToCollect);
-                    gameWorld.collectibleItems = gameWorld.collectibleItems.filter(item => item !== collectibleToCollect);
-                }
-                isCollecting = false;
-                collectMessage.style.display = 'none';
-            }
-        } else {
-            collectMessage.style.display = 'none';
-        }
-    }
-    renderer.render(scene, camera);
-}
-
-function showGameOverScreen() {
-    isGameOver = true;
-    gameOverScreen.style.display = 'flex';
-    blocker.style.display = 'flex';
-    if (controls.isLocked) {
-        controls.unlock();
-    }
-    if (crosshair) {
-        crosshair.classList.add('hidden');
-    }
-}
-
-function showVictoryScreen() {
-    isGameWon = true;
-    victoryScreen.style.display = 'flex';
-    blocker.style.display = 'flex';
-    if (controls.isLocked) {
-        controls.unlock();
-    }
-    if (crosshair) {
-        crosshair.classList.add('hidden');
+        collectMessage.style.display = nearCollectible && controls.isLocked ? 'block' : 'none';
     }
 }
 

@@ -394,7 +394,7 @@ export class Enemy {
         const intersects = this.raycaster.intersectObjects(this.collidableObjects, true);
         if (intersects.length > 0) {
             const distanceToGround = intersects[0].distance;
-            const targetY = this.group.position.y - distanceToGround + 3.5;
+            const targetY = this.group.position.y - distanceToGround + 4;
             this.group.position.y = targetY;
         }
 

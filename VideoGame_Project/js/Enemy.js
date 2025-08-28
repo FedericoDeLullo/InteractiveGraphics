@@ -98,7 +98,6 @@ export class Enemy {
         const randomAngle = Math.random() * Math.PI * 2;
         return new THREE.Vector3(Math.sin(randomAngle), 0, Math.cos(randomAngle)).normalize();
     }
-
     /**
      * Creates the enemy's invisible hitbox for collision detection.
      */
@@ -401,9 +400,7 @@ export class Enemy {
 
         // Determines the enemy's state based on the distance from the player
         const distanceToPlayer = this.group.position.distanceTo(playerPosition);
-        if (distanceToPlayer <= this.minAttackDistance) {
-            this.state = 'Evade';
-        } else if (distanceToPlayer <= this.attackRange) {
+        if (distanceToPlayer <= this.attackRange) {
             this.state = 'Attack';
         } else if (distanceToPlayer <= this.pursueRange) {
             this.state = 'Pursue';
@@ -454,16 +451,6 @@ export class Enemy {
                 this.shoot(playerPosition);
                 break;
 
-            case 'Evade':
-                this.animateLimbs(delta, -1); // Animates backward walk
-                direction.subVectors(this.group.position, playerPosition).normalize();
-                this.movementRaycaster.set(this.group.position, direction);
-                const evadeIntersects = this.movementRaycaster.intersectObjects(this.collidableObjects, true);
-                if (!(evadeIntersects.length > 0 && evadeIntersects[0].distance < this.collisionCheckDistance)) {
-                    this.group.position.addScaledVector(direction, this.pursueSpeed * delta);
-                }
-                this.group.lookAt(playerPosition.x, this.group.position.y, playerPosition.z);
-                break;
         }
 
         // Always update the gun's position based on the state

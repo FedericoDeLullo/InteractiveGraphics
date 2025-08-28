@@ -210,17 +210,11 @@ export class WeaponHandler {
             flashSize = 0.04;
         }
 
-        // Add the muzzle flash to the scene and position it correctly.
-        if (this.muzzleFlash.parent) {
-             this.muzzleFlash.parent.remove(this.muzzleFlash);
-        }
+
 
         this.scene.add(this.muzzleFlash);
 
-        // Update flash geometry and material based on weapon.
-        if (this.muzzleFlash.geometry) {
-            this.muzzleFlash.geometry.dispose();
-        }
+
         this.muzzleFlash.geometry = new THREE.ConeGeometry(flashSize, flashSize * 4, 8);
         this.muzzleFlash.material.color.set(flashColor);
 

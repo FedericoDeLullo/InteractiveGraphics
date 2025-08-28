@@ -86,7 +86,7 @@ export class Fountain {
         const streamStart = new THREE.Vector3(0, 7.1, 0); // Starting point of the water stream.
         const gravity = -0.05; // Gravity effect on the particles.
         const emissionRate = 0.1; // Probability of emitting a new particle each frame.
-        const rotationSpeed = 0.05; // Speed of the spiral rotation.
+        const rotationSpeed = 0.03; // Speed of the spiral rotation.
         const spiralRadius = 1.5; // Radius of the spiral.
 
         // Emit a new particle based on the emission rate.

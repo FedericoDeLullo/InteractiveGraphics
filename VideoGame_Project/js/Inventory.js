@@ -19,17 +19,21 @@ export class Inventory {
     }
 
     render() {
+        // Clears the entire content of the inventory container.
         this.container.innerHTML = '';
+
+        // If the inventory is empty, show a message and stop.
         if (this.items.length === 0) {
             this.container.innerHTML = '<p>Your inventory is empty.</p>';
             return;
         }
 
+        // Loop through each item in the inventory and render it.
         this.items.forEach(item => {
             const itemElement = document.createElement('div');
             itemElement.className = 'inventory-item';
 
-            // Immagine
+            // Image section
             const imageWrapper = document.createElement('div');
             imageWrapper.className = 'inventory-item-image';
             const image = document.createElement('img');
@@ -38,7 +42,7 @@ export class Inventory {
             imageWrapper.appendChild(image);
             itemElement.appendChild(imageWrapper);
 
-            // Testo (Nome e Statistiche)
+            // Text section (Name and Stats)
             const textWrapper = document.createElement('div');
             textWrapper.className = 'inventory-item-text';
 
@@ -46,7 +50,7 @@ export class Inventory {
             name.textContent = item.name;
             textWrapper.appendChild(name);
 
-            // NUOVO: Elemento per le statistiche
+            // Element for stats
             const stats = document.createElement('div');
             stats.className = 'inventory-item-stats';
             stats.innerHTML = `Damage: ${item.damage}<br>Range: ${item.range}`;
@@ -54,7 +58,7 @@ export class Inventory {
 
             itemElement.appendChild(textWrapper);
 
-            // Pulsanti
+            // Buttons section
             const buttonContainer = document.createElement('div');
             buttonContainer.className = 'inventory-button-container';
 
@@ -81,6 +85,7 @@ export class Inventory {
 
             itemElement.appendChild(buttonContainer);
 
+            // Append the new item element to the container.
             this.container.appendChild(itemElement);
         });
     }

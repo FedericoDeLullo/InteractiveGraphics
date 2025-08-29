@@ -4,6 +4,10 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.m
  * Manages the explosion and death animation logic for enemies.
  */
 export class EnemyDeathManager {
+    /**
+     * @param {THREE.Scene} scene - The Three.js scene.
+     * @param {Array<THREE.Object3D>} collidableObjects - The array of collidable objects to check for ground.
+     */
     constructor(scene, collidableObjects) {
         this.scene = scene;
         this.collidableObjects = collidableObjects;
@@ -14,9 +18,9 @@ export class EnemyDeathManager {
     }
 
     /**
-     * Triggers the explosion animation for an enemy.
+     * Triggers the explosion animation for an enemy and removes it from the scene and collidable objects list.
      * @param {THREE.Group} enemyGroup - The enemy group to be dismembered.
-     * @param {THREE.Mesh} enemyModel - The enemy's model.
+     * @param {THREE.Mesh} enemyModel - The enemy's model mesh.
      * @param {THREE.Mesh} head - The head.
      * @param {THREE.Mesh} leftArm - The left arm.
      * @param {THREE.Mesh} rightArm - The right arm.
@@ -67,7 +71,15 @@ export class EnemyDeathManager {
             }
         });
 
+        // Remove the enemy from the scene
         this.scene.remove(enemyGroup);
+
+        // Remove the enemy mesh from the collidable objects list directly
+        const collidableIndex = this.collidableObjects.indexOf(enemyModel);
+        if (collidableIndex > -1) {
+            this.collidableObjects.splice(collidableIndex, 1);
+        }
+
         if (healthBar) {
             healthBar.style.display = 'none';
         }
@@ -112,12 +124,5 @@ export class EnemyDeathManager {
                 }
             }
         }
-    }
-
-    /**
-     * Returns the number of body parts currently being animated.
-     */
-    get activePartsCount() {
-        return this.bodyParts.length;
     }
 }

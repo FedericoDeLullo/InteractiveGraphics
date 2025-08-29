@@ -34,12 +34,8 @@ export class GameWorld {
         this.fountain = null; // Property for the fountain
 
         // Centralize enemy removal logic
-        this.enemyDeathManager = new EnemyDeathManager(this.scene, this.collidableObjects, (enemyMesh) => {
-            const collidableIndex = this.collidableObjects.indexOf(enemyMesh);
-            if (collidableIndex > -1) {
-                this.collidableObjects.splice(collidableIndex, 1);
-            }
-        });
+        // Chiamata semplificata che non necessita più di un callback
+        this.enemyDeathManager = new EnemyDeathManager(this.scene, this.collidableObjects);
 
         this.housePositions = {
             houseA: [
